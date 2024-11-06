@@ -1,6 +1,5 @@
 library("hoopR")
 library("tidyverse")
-library("Rfast")
 
 # sleeper point computation
 source("Scrape.R")
@@ -38,12 +37,16 @@ df_2025 <- load_nba_player_box(seasons = 2025) %>%
 team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", "DeMar DeRozan", "Alperen Sengun",
           "Draymond Green", "Deandre Ayton", "Jordan Poole", "Collin Sexton")
 
-df_2024 %>%
+# last years stats for priors
+last_year_statistics <- df_2024 %>%
   filter(name %in% team) %>%
   group_by(name) %>%
+  drop_na() %>%
   summarize(
-    n_last_year = 
-  )
+    n_last_year = n(),
+    sse_last_year = (n_last_year - 1)*var(sleeper_points))
+
+# grab projections
 
 
 
