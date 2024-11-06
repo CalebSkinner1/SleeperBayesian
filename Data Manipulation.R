@@ -1,6 +1,6 @@
 library("hoopR")
 library("tidyverse")
-library("Rfast")
+library("janitor")
 
 # sleeper point computation
 source("Scrape.R")
