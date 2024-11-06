@@ -44,6 +44,8 @@ sleeperDeviation <- function(player, boxScores, projections, precision = F) {
 }
 projConsistencies <- map_dbl(team, sleeperDeviation, currentTeam, sleeperProjs)
 
+
+### Gibbs Sampling
 singlePlayerModel <- function(n.iter, data, priorMean, alpha, beta, 
                               thetaStarts, theSigma, hSigma,
                               burnIn = 0) {
@@ -96,4 +98,6 @@ firstSamples <- singlePlayerModel(3000, currentTeam %>% filter(name == team[1]) 
 firstSamples %>% summary
 firstSamples %>% effectiveSize()
 firstSamples %>% plot
+
+mean(firstSamples[, 10] >= 22) # Probability that he does as good or outperforms his previous game
 
