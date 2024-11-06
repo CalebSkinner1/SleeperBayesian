@@ -81,6 +81,9 @@ projections <- tibble(
   group_by(name) %>%
   mutate(game_no = row_number())
 
+## Delete everything
+rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton)
+
 # current year
 data <- df_2025 %>%
   filter(name %in% team) %>%
