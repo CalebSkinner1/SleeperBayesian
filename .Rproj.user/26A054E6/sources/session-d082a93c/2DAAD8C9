@@ -3,9 +3,9 @@
     "path": "~/Desktop/Rice/First Year/STAT 525 Bayesian Methods/SleeperBayesian/Data Manipulation.R",
     "project_path": "Data Manipulation.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "3903999630",
     "contents": "",
-    "dirty": true,
+    "dirty": false,
     "created": 1730921120415.0,
     "source_on_save": false,
     "relative_order": 1,
@@ -16,11 +16,11 @@
         "scrollLine": "27"
     },
     "folds": "",
-    "lastKnownWriteTime": 1730921104,
+    "lastKnownWriteTime": 1730922814,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1730922712185,
+    "last_content_update": 1730922814650,
     "read_only": false,
     "read_only_alternatives": []
 }
