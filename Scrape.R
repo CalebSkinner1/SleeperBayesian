@@ -4,6 +4,7 @@ library("rvest")
 library("janitor")
 library("Rfast")
 
+# sleeper point function
 sleeper_points <- function(player_df){
   player_df %>%
     mutate(
