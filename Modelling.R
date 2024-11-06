@@ -8,7 +8,84 @@ library(coda)
 naiveAlphasBetas <- df_2024 %>% group_by(name) %>% summarise(GP = length(name), 
                                                              Betas = (GP - 1) * var(sleeper_points)) %>%
   ungroup()
-team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", "DeMar DeRozan", "Alperen Sengun",
-          "Draymond Green", "Deandre Ayton", "Jordan Poole", "Collin Sexton")
+team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", 
+          "DeMar DeRozan", "Alperen Sengun", "Draymond Green", 
+          "Deandre Ayton", "Jordan Poole", "Collin Sexton")
 
 teamParams <- naiveAlphasBetas %>% filter(name %in% team)
+
+## Summary Stats for Prior Standard Deviations
+map(map2(teamParams$GP/2, teamParams$Betas/2, 
+      ~1/sqrt(rgamma(1e+4, .x, .y))), summary)
+
+## 
+
+currentTeam <- df_2025 %>% filter(name %in% team)
+
+sleeperDeviation <- function(player, boxScores, projections, precision = F) {
+  
+  playerPoints <- boxScores %>% filter(name == player) %>% pull(sleeper_points)
+  gamesPlayed <- length(playerPoints)
+  
+  projectionVec <- (projections %>% filter(name == player) %>%
+    pull(sleeper_projection))[1:gamesPlayed]
+  theDeviation <- sum((playerPoints - projectionVec)^2)/(gamesPlayed - 1)
+  
+  if (precision) {
+    
+    return(1/theDeviation)
+    
+  } else {
+    
+    return(theDeviation)
+    
+  }
+  
+}
+projConsistencies <- map_dbl(team, sleeperDeviation, currentTeam, sleeperProjs)
+
+singlePlayerModel <- function(n.iter, data, priorMean, alpha, beta, 
+                              thetaStarts, theSigma, hSigma,
+                              burnIn = 0) {
+  
+  ## Initializing Matrices
+  gamesPlayed <- length(data)
+  playerDF <- gamesPlayed - 1
+  thetaMat <- matrix(1, nrow = n.iter + burnIn + 1, ncol = gamesPlayed)
+  thetaMat[1, ] <- thetaStarts
+  
+  ## Loop 
+  
+  for (j in 2:(n.iter + burnIn + 1)) {
+    
+    ## Hierarchical Variance
+    hSigma[j] <- 1/rgamma(1, playerDF/2, sum((thetaMat[j - 1, ] - priorMean)^2)/2)
+    
+    ## Player Consistency
+    theSigma[j] <- 1/rgamma(1, gamesPlayed/2 + alpha, 
+                         sum((data - thetaMat[j - 1, ])^2)/2 + beta)
+    
+    ## All Thetas 
+    currentPrecision <- (1/theSigma[j] + 1/hSigma[j])^(-1)
+    thetaMat[j, ] <- map_dbl(data, ~rnorm(1, currentPrecision * 
+                                     (priorMean/hSigma[j] + .x/theSigma[j]), 
+                                   sqrt(currentPrecision)))
+    
+  }
+  ## End for loop
+  
+  ## Prepare Results
+  resMat <- cbind(thetaMat, theSigma, hSigma)
+  colnames(resMat)[1:gamesPlayed] <- paste0("theta_", 1:gamesPlayed)
+  return(mcmc(resMat[-1:(-1 * burnIn - 1), ]))
+  
+}
+
+firstSamples <- singlePlayerModel(3000, currentTeam %>% filter(name == team[1]) %>% pull(sleeper_points),
+                  priorMean = 26.2, alpha = naiveAlphasBetas$GP[8]/2, beta = naiveAlphasBetas$Betas[8]/2,
+                  thetaStarts = rep(20, 7), theSigma = 1, hSigma = 1, 
+                  burnIn = 1.5e+4)
+firstSamples %>% summary
+firstSamples %>% effectiveSize()
+firstSamples %>% plot
+
