@@ -8,8 +8,8 @@ sleeper_points <- function(player_df){
   player_df %>%
     rowwise() %>%
     mutate(
-      dbldbl = if_else(sum(c_across(pts:blk)>10) > 1, 1, 0),
-      trpdbl = if_else(sum(c_across(pts:blk)>10) > 2, 1, 0)) %>%
+      dbldbl = if_else(sum(c_across(pts:blk)>9) > 1, 1, 0),
+      trpdbl = if_else(sum(c_across(pts:blk)>9) > 2, 1, 0)) %>%
     ungroup() %>%
     mutate(
       forty = if_else(pts > 39, 1, 0),
