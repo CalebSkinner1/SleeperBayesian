@@ -34,12 +34,11 @@ df_2025 <- load_nba_player_box(seasons = 2025) %>%
   clean_box_score() %>%
   sleeper_points()
 
-# select ten players ie Daniel's team for funsies
-team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", "DeMar DeRozan", "Alperin Sengun",
+# select nine players ie Daniel's team for funsies
+team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", "DeMar DeRozan", "Alperen Sengun",
           "Draymond Green", "Deandre Ayton", "Jordan Poole", "Collin Sexton")
 
-# 
-df_2024 %>% view()
+df_2024 %>%
   filter(name %in% team) %>%
   group_by(name) %>%
   summarize(
