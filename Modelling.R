@@ -53,6 +53,9 @@ singlePlayerModel <- function(n.iter, data, priorMean, alpha, beta,
   playerDF <- gamesPlayed - 1
   thetaMat <- matrix(1, nrow = n.iter + burnIn + 1, ncol = gamesPlayed)
   thetaMat[1, ] <- thetaStarts
+  # postYs <- matrix(1, nrow = n.iter + burnIn + 1, ncol = gamesPlayed)
+  # postYs[1, ] <- data
+  newY <- 1
   
   ## Loop 
   
@@ -71,12 +74,17 @@ singlePlayerModel <- function(n.iter, data, priorMean, alpha, beta,
                                      (priorMean/hSigma[j] + .x/theSigma[j]), 
                                    sqrt(currentPrecision)))
     
+    ## Posterior Predictive Sampling
+    newTheta <- rnorm(1, priorMean, sqrt(hSigma[j]))
+    newY[j] <- rnorm(1, newTheta, sqrt(theSigma[j]))
+    
   }
   ## End for loop
   
   ## Prepare Results
-  resMat <- cbind(thetaMat, theSigma, hSigma)
+  resMat <- cbind(thetaMat, theSigma, hSigma, newY)
   colnames(resMat)[1:gamesPlayed] <- paste0("theta_", 1:gamesPlayed)
+  #colnames(resMat)[(gamesPlayed + 2 + 1):(2 * gamesPlayed + 2)] <- paste0("Game_", 1:gamesPlayed)
   return(mcmc(resMat[-1:(-1 * burnIn - 1), ]))
   
 }
