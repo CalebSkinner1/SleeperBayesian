@@ -37,6 +37,7 @@ df_2025 <- load_nba_player_box(seasons = 2025) %>%
 
 # write to csv for ease
 # write_csv(df_2024, "2024_stats.R")
+df_2024 <- read_csv("2024_stats.R")
 
 # select nine players ie Daniel's team for funsies
 team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", "DeMar DeRozan", "Alperen Sengun",
@@ -97,4 +98,13 @@ data <- df_2025 %>%
   full_join(projections, by = join_by("name", "game_no")) %>%
   select(date, name, game_no, sleeper_points, sleeper_projection)
   
+
+# visualize games for distribution estimate
+# df_2025 %>% filter(name %in% team[1:4]) %>%
+#   ggplot() +
+#   geom_density(aes(x = sleeper_points, color = name))
+# 
+# df_2025 %>% filter(name %in% team[5:9]) %>%
+#   ggplot() +
+#   geom_density(aes(x = sleeper_points, color = name))
   

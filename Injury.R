@@ -1,10 +1,13 @@
+# load in data
 source("Data Manipulation.R")
 
+# teams and games they play
 nba_teams <- load_nba_team_box(season = 2025) %>%
   filter(season_type == 2) %>%
   select(game_date, team_name) %>%
   rename(date = game_date)
 
+# each player with missed games
 load_nba_player_box(season = 2025) %>%
   select(athlete_display_name, team_name, game_date) %>%
   left_join(df_2025, ., by = join_by(name == athlete_display_name, date == game_date)) %>%

@@ -1,5 +1,8 @@
-library(tidyverse)
-library(coda)
+library("tidyverse")
+library("coda")
+
+# load in data
+source("Data Manipulation.R")
 
 #### Variance Priors
 
@@ -8,9 +11,6 @@ library(coda)
 naiveAlphasBetas <- df_2024 %>% group_by(name) %>% summarise(GP = length(name), 
                                                              Betas = (GP - 1) * var(sleeper_points)) %>%
   ungroup()
-team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", 
-          "DeMar DeRozan", "Alperen Sengun", "Draymond Green", 
-          "Deandre Ayton", "Jordan Poole", "Collin Sexton")
 
 teamParams <- naiveAlphasBetas %>% filter(name %in% team)
 
