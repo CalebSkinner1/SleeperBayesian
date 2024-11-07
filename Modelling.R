@@ -22,27 +22,27 @@ map(map2(teamParams$GP/2, teamParams$Betas/2,
 
 currentTeam <- df_2025 %>% filter(name %in% team)
 
-sleeperDeviation <- function(player, boxScores, projections, precision = F) {
-  
-  playerPoints <- boxScores %>% filter(name == player) %>% pull(sleeper_points)
-  gamesPlayed <- length(playerPoints)
-  
-  projectionVec <- (projections %>% filter(name == player) %>%
-    pull(sleeper_projection))[1:gamesPlayed]
-  theDeviation <- sum((playerPoints - projectionVec)^2)/(gamesPlayed - 1)
-  
-  if (precision) {
-    
-    return(1/theDeviation)
-    
-  } else {
-    
-    return(theDeviation)
-    
-  }
-  
-}
-projConsistencies <- map_dbl(team, sleeperDeviation, currentTeam, sleeperProjs)
+# sleeperDeviation <- function(player, boxScores, projections, precision = F) {
+#   
+#   playerPoints <- boxScores %>% filter(name == player) %>% pull(sleeper_points)
+#   gamesPlayed <- length(playerPoints)
+#   
+#   projectionVec <- (projections %>% filter(name == player) %>%
+#     pull(sleeper_projection))[1:gamesPlayed]
+#   theDeviation <- sum((playerPoints - projectionVec)^2)/(gamesPlayed - 1)
+#   
+#   if (precision) {
+#     
+#     return(1/theDeviation)
+#     
+#   } else {
+#     
+#     return(theDeviation)
+#     
+#   }
+#   
+# }
+# projConsistencies <- map_dbl(team, sleeperDeviation, currentTeam, data$sleeper_projection)
 
 
 ### Gibbs Sampling
@@ -93,7 +93,8 @@ singlePlayerModel <- function(n.iter, data, priorMean, alpha, beta,
 
 firstSamples <- singlePlayerModel(3000, currentTeam %>% filter(name == team[1]) %>% pull(sleeper_points),
                   priorMean = 26.2, alpha = naiveAlphasBetas$GP[8]/2, beta = naiveAlphasBetas$Betas[8]/2,
-                  thetaStarts = rep(20, 7), theSigma = 1, hSigma = 1, 
+                  thetaStarts = rep(20, nrow(currentTeam %>% filter(name == team[1]))),
+                  theSigma = 1, hSigma = 1, 
                   burnIn = 1.5e+4)
 firstSamples %>% summary
 firstSamples %>% effectiveSize()
@@ -153,9 +154,9 @@ singlePlayerMP <- function(n.iter, data, sleepEst, priorMean, alpha, beta,
 }
 
 multiSamples <- singlePlayerMP(1e+4, currentTeam %>% filter(name == team[1]) %>% pull(sleeper_points),
-                                  sleepEst = 26.2, priorMean = (sleeperProjs %>% filter(name == team[1]) %>% pull(sleeper_projection))[1:7],
+                                  sleepEst = 26.2, priorMean = (data %>% filter(name == team[1]) %>% pull(sleeper_projection))[1:8],
                                   alpha = naiveAlphasBetas$GP[8]/2, beta = naiveAlphasBetas$Betas[8]/2,
-                                  thetaStarts = rep(20, 7), theSigma = 1, hSigma = 1, 
+                                  thetaStarts = rep(20, 8), theSigma = 1, hSigma = 1, 
                                   burnIn = 5e+4)
 multiSamples %>% summary
 multiSamples %>% effectiveSize()
