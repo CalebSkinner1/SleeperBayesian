@@ -8,8 +8,8 @@ sleeper_points <- function(player_df){
   player_df %>%
     rowwise() %>%
     mutate(
-      dbldbl = if_else(sum(c_across(pts:blk)>10) > 1, 1, 0),
-      trpdbl = if_else(sum(c_across(pts:blk)>10) > 2, 1, 0)) %>%
+      dbldbl = if_else(sum(c_across(pts:blk)>9) > 1, 1, 0),
+      trpdbl = if_else(sum(c_across(pts:blk)>9) > 2, 1, 0)) %>%
     ungroup() %>%
     mutate(
       forty = if_else(pts > 39, 1, 0),
@@ -19,7 +19,7 @@ sleeper_points <- function(player_df){
     select(-dbldbl, -trpdbl, -forty, -fifty)
 }
 
-# scape function
+# scrape function
 scrape_function <- function(html){
   document <- read_html(html) %>%
     html_elements("body") %>%
@@ -56,11 +56,6 @@ scrape_function <- function(html){
   
   return(df)
 }
-
-pg_2023 <- scrape_function("https://www.basketball-reference.com/players/g/georgpa01/gamelog/2024") %>%
-  sleeper_points() %>%
-  select(name, sleeper_points)
-
   
 
   

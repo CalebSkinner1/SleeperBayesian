@@ -19,7 +19,7 @@ sleeper_points <- function(player_df){
     select(-dbldbl, -trpdbl, -forty, -fifty)
 }
 
-# scape function
+# scrape function
 scrape_function <- function(html){
   document <- read_html(html) %>%
     html_elements("body") %>%
@@ -56,11 +56,6 @@ scrape_function <- function(html){
   
   return(df)
 }
-
-pg_2023 <- scrape_function("https://www.basketball-reference.com/players/g/georgpa01/gamelog/2024") %>%
-  sleeper_points() %>%
-  select(name, sleeper_points)
-
   
 
   

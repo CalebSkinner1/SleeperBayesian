@@ -25,15 +25,18 @@ clean_box_score <- function(df){
       "name" = athlete_display_name)
 }
 
-# last year
-df_2024 <- load_nba_player_box(seasons = 2024) %>%
-  clean_box_score() %>%
-  sleeper_points()
+# last year - commented out to make faster
+# df_2024 <- load_nba_player_box(seasons = 2024) %>%
+#   clean_box_score() %>%
+#   sleeper_points()
 
 # current year
 df_2025 <- load_nba_player_box(seasons = 2025) %>%
   clean_box_score() %>%
   sleeper_points()
+
+# write to csv for ease
+# write_csv(df_2024, "2024_stats.R")
 
 # select nine players ie Daniel's team for funsies
 team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", "DeMar DeRozan", "Alperen Sengun",
