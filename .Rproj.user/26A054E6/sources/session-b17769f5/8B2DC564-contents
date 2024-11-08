@@ -170,9 +170,8 @@ multiSamples %>% summary
 multiSamples %>% effectiveSize()
 
 # Week Function
-week_pred <- function(n.iter, season_data, week_data, alpha, beta, burnIn){
+week_pred <- function(n.iter, data, week_data, alpha, beta, burnIn){
   
-  data <- bind_rows(season_data, week_data)
   #grabs sleeper points from full data tibble
   sleeper_points <- na.omit(data$sleeper_points)
   gamesPlayed <- length(sleeper_points)
@@ -191,7 +190,7 @@ week_pred <- function(n.iter, season_data, week_data, alpha, beta, burnIn){
   thetaMat[1, ] <- thetaStarts
   # postYs <- matrix(1, nrow = n.iter + burnIn + 1, ncol = gamesPlayed)
   # postYs[1, ] <- data
-  newY <- rep(1, length(sleepEst))
+  newY <- matrix(1, nrow = n.iter + burnIn + 1, ncol = length(sleepEst))
   
   ## Loop 
   
@@ -214,18 +213,56 @@ week_pred <- function(n.iter, season_data, week_data, alpha, beta, burnIn){
     
     ## Posterior Predictive Sampling
     newTheta <- map(sleepEst, ~rnorm(1, ., sqrt(hSigma[j]))) # New Estimates
-    newY[j] <- map(newTheta, ~rnorm(1, ., sqrt(theSigma[j])))
-    
+    newY[j, ] <- map_dbl(newTheta, ~rnorm(1, ., sqrt(theSigma[j])))
   }
   ## End for loop
   
   ## Prepare Results
+  
+  
+  
   resMat <- cbind(thetaMat, theSigma, hSigma, newY)
   colnames(resMat)[1:gamesPlayed] <- paste0("theta_", 1:gamesPlayed)
+  colnames(resMat)[(gamesPlayed + 3):ncol(resMat)] <- paste0("newY_", (gamesPlayed+1):(gamesPlayed + length(sleepEst)))
+  
   #colnames(resMat)[(gamesPlayed + 2 + 1):(2 * gamesPlayed + 2)] <- paste0("Game_", 1:gamesPlayed)
   return(mcmc(resMat[-1:(-1 * burnIn - 1), ]))
   
 }
+
+weekSamples <- week_pred(1e+4, data = current_team %>% filter(name == team[1]),
+          week_data = current_team %>% filter(name == team[1]) %>% filter(game_no > 6),
+          alpha = naiveAlphasBetas$GP[8]/2, beta = naiveAlphasBetas$Betas[8]/2,
+          burnIn = 5e+4)
+
+# initial analysis
+weekSamples %>% summary
+weekSamples %>% effectiveSize()
+weekSamples %>% plot
+
+# function computes probability of exceeding score in future games
+prob_decision <- function(mcmc_object, week_data){
+  # best score of player thus far
+  best_score <- max(week_data$sleeper_points, na.rm = TRUE)
+  
+  # compute number of samples where future score exceeds current best score
+  exceed_prob <- mcmc_object %>% as_tibble() %>%
+    rowwise() %>%
+    mutate(exceed = max(c_across(contains("newY"))) > best_score) %>%
+    group_by() %>%
+    summarize(
+      exceed_prob = mean(exceed))
+  
+  return(exceed_prob %>% pull())}
+
+weekSamples %>% prob_decision(current_team %>% filter(name == team[1]) %>% filter(game_no > 6))
+
+# different player because I want to (Sengun)
+week_pred(1e+4, data = current_team %>% filter(name == team[5]),
+          week_data = current_team %>% filter(name == team[5]) %>% filter(game_no > 6),
+          alpha = naiveAlphasBetas$GP[8]/2, beta = naiveAlphasBetas$Betas[8]/2,
+          burnIn = 5e+4) %>%
+  prob_decision(current_team %>% filter(name == team[5]) %>% filter(game_no > 6))
 
 
 
