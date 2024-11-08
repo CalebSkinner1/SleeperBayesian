@@ -91,6 +91,7 @@ rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton)
 # current year
 current_team <- df_2025 %>%
   filter(name %in% team) %>%
+  arrange(date) %>%
   group_by(name) %>%
   mutate(
     game_no = row_number()) %>%
