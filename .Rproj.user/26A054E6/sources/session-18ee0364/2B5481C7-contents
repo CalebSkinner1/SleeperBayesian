@@ -47,8 +47,10 @@ currentTeam <- df_2025 %>% filter(name %in% team)
 
 ### Gibbs Sampling
 singlePlayerModel <- function(n.iter, data, priorMean, alpha, beta, 
-                              thetaStarts, theSigma, hSigma,
+                              theSigma = 1, hSigma = 1,
                               burnIn = 0) {
+  # caleb's prop to make function take in less parameters
+  thetaStarts <- rep(20, length(data))
   
   ## Initializing Matrices
   gamesPlayed <- length(data)
@@ -91,10 +93,8 @@ singlePlayerModel <- function(n.iter, data, priorMean, alpha, beta,
   
 }
 
-firstSamples <- singlePlayerModel(3000, currentTeam %>% filter(name == team[1]) %>% pull(sleeper_points),
+firstSamples <- singlePlayerModel(3000, data = currentTeam %>% filter(name == team[1]) %>% pull(sleeper_points),
                   priorMean = 26.2, alpha = naiveAlphasBetas$GP[8]/2, beta = naiveAlphasBetas$Betas[8]/2,
-                  thetaStarts = rep(20, nrow(currentTeam %>% filter(name == team[1]))),
-                  theSigma = 1, hSigma = 1, 
                   burnIn = 1.5e+4)
 firstSamples %>% summary
 firstSamples %>% effectiveSize()
