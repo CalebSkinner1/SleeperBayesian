@@ -170,7 +170,7 @@ multiSamples %>% summary
 multiSamples %>% effectiveSize()
 
 # Week Function
-week_pred <- function(n.iter, data, week_data, alpha, beta, burnIn){
+week_pred <- function(n.iter, data, week_data, alpha, beta, hSigma = 1, theSigma = 1, burnIn = 0){
   
   #grabs sleeper points from full data tibble
   sleeper_points <- na.omit(data$sleeper_points)
