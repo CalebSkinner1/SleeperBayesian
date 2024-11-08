@@ -258,11 +258,12 @@ prob_decision <- function(mcmc_object, week_data){
 weekSamples %>% prob_decision(current_team %>% filter(name == team[1]) %>% filter(game_no > 6))
 
 # different player because I want to (Sengun)
-week_pred(1e+4, data = current_team %>% filter(name == team[5]),
-          week_data = current_team %>% filter(name == team[5]) %>% filter(game_no > 6),
+t <- Sys.time()
+week_pred(1e+4, data = current_team %>% filter(name == team[6]),
+          week_data = current_team %>% filter(name == team[6]) %>% filter(game_no > 6),
           alpha = naiveAlphasBetas$GP[8]/2, beta = naiveAlphasBetas$Betas[8]/2,
           burnIn = 5e+4) %>%
-  prob_decision(current_team %>% filter(name == team[5]) %>% filter(game_no > 6))
-
+  prob_decision(current_team %>% filter(name == team[6]) %>% filter(game_no > 6))
+Sys.time() -t
 
 
