@@ -1,26 +1,26 @@
 {
-    "id": "D2C6A69B",
+    "id": "2DAAD8C9",
     "path": "~/Desktop/Rice/First Year/STAT 525 Bayesian Methods/SleeperBayesian/Data Manipulation.R",
     "project_path": "Data Manipulation.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "306113011",
     "contents": "",
-    "dirty": true,
-    "created": 1731082621904.0,
+    "dirty": false,
+    "created": 1730921120415.0,
     "source_on_save": false,
-    "relative_order": 2,
+    "relative_order": 1,
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "91,12",
-        "scrollLine": "83"
+        "cursorPosition": "96,19",
+        "scrollLine": "84"
     },
-    "folds": "",
-    "lastKnownWriteTime": 1730993054,
+    "folds": "9|32|25|0|\n",
+    "lastKnownWriteTime": 1731103551,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1731093857069,
+    "last_content_update": 1731103551155,
     "read_only": false,
     "read_only_alternatives": []
 }

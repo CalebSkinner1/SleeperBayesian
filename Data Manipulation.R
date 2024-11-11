@@ -91,8 +91,8 @@ rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton)
 # current year
 current_team <- df_2025 %>%
   filter(name %in% team) %>%
-  arrange(date) %>%
   group_by(name) %>%
+  arrange(date) %>%
   mutate(
     game_no = row_number()) %>%
   ungroup() %>% 
@@ -100,13 +100,12 @@ current_team <- df_2025 %>%
   select(date, name, game_no, sleeper_points, sleeper_projection)
   
 
-
 # visualize games for distribution estimate
-df_2025 %>% filter(name %in% team[1:4]) %>%
-  ggplot() +
-  geom_density(aes(x = sleeper_points, color = name))
-
-df_2025 %>% filter(name %in% team[5:9]) %>%
-  ggplot() +
-  geom_density(aes(x = sleeper_points, color = name))
+# df_2025 %>% filter(name %in% team[1:4]) %>%
+#   ggplot() +
+#   geom_density(aes(x = sleeper_points, color = name))
+# 
+# df_2025 %>% filter(name %in% team[5:9]) %>%
+#   ggplot() +
+#   geom_density(aes(x = sleeper_points, color = name))
   
