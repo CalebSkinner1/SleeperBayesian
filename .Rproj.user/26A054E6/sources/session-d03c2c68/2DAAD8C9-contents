@@ -43,14 +43,15 @@ df_2024 <- read_csv("2024_stats.R")
 team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", "DeMar DeRozan", "Alperen Sengun",
           "Draymond Green", "Deandre Ayton", "Jordan Poole", "Collin Sexton")
 
-# last years stats for priors
-# last_year_statistics <- df_2024 %>%
-#   filter(name %in% team) %>%
-#   group_by(name) %>%
-#   drop_na() %>%
-#   summarize(
-#     n_last_year = n(),
-#     sse_last_year = (n_last_year - 1)*var(sleeper_points))
+# last years stats for priors/injury
+last_year_statistics <- df_2024 %>%
+  group_by(name) %>%
+  drop_na() %>%
+  summarize(
+    n = n(),
+    sse = (n - 1)*var(sleeper_points),
+    play_rate = n/82
+    )
 
 # grab projections through week 4
 irving <- c(24.1, 23.11, 24.29, 22.37, 23.82, 24.41, 24.45, 26.21, 23.09, 23.63, 24.67, 24.74, 24.22, 24.75)
