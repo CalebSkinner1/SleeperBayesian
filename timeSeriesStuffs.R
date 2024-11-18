@@ -42,4 +42,4 @@ nSplit(scottieBarnes_points, 5, mean) # Mean over groups of five
 nSplit(scottieBarnes_points, 10, mean) # Mean over groups of ten
 
 # It appears to me that he improved by the end of the season
-# Interestingly enough, younger players might not have stationary dsitributions. 
+# Interestingly enough, younger players might not have stationary distributions. 
