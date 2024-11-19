@@ -53,6 +53,11 @@ last_year_statistics <- df_2024 %>%
     play_rate = n/82
     )
 
+df_2024 %>% filter(str_detect(name, "Brook Lopez")) %>%
+  drop_na() %>%
+  ggplot() +
+  geom_density(aes(x = sleeper_points))
+
 # grab projections through week 5
 irving <- c(24.1, 23.11, 24.29, 22.37, 23.82, 24.41, 24.45, 26.21, 23.09, 23.63, 24.67, 24.74, 24.22, 24.75, 22.87, 23.73, 23.53)
 suggs <- c(16.51, 15.97, 16.46, 18.08, 19.29, 21.2, 21.95, 20.81, 21.53, 20.06, 22.05, 21.57, 20.26, 21.4, 20.9, 20.6, 20.43, 20.73)
@@ -109,4 +114,12 @@ current_team <- df_2025 %>%
 # df_2025 %>% filter(name %in% team[5:9]) %>%
 #   ggplot() +
 #   geom_density(aes(x = sleeper_points, color = name))
+
+
+
+
+
+# Caleb to do
+# add projections for Wemby, Bobby Portis, Shai, and Keyonte George
+
   

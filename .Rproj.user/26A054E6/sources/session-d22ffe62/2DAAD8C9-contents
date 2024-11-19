@@ -114,4 +114,12 @@ current_team <- df_2025 %>%
 # df_2025 %>% filter(name %in% team[5:9]) %>%
 #   ggplot() +
 #   geom_density(aes(x = sleeper_points, color = name))
+
+
+
+
+
+# Caleb to do
+# add projections for Wemby, Bobby Portis, Shai, and Keyonte George
+
   
