@@ -32,3 +32,8 @@ x <- seq(0, 80, length.out = N)
 shai_week %>% prob_decision(best_score = x, remaining_games = 8, week_data = NULL) %>%
   ggplot() +
   geom_line(aes(score, exceed_prob))
+
+
+
+
+
