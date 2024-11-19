@@ -43,3 +43,17 @@ nSplit(scottieBarnes_points, 10, mean) # Mean over groups of ten
 
 # It appears to me that he improved by the end of the season
 # Interestingly enough, younger players might not have stationary distributions. 
+
+autocorrelationPlots <- function(playerName) {
+  
+  theVar <- df_2024 %>% filter(name == playerName) %>% pull(sleeper_points)
+  theACF <-acf(theVar, plot = F)
+  plot(theACF[1:length(theACF$acf)])
+  pacf(theVar)
+  
+}
+
+pookiePoints <- df_2024 %>% filter(name == "LeBron James") %>% pull(sleeper_points)
+
+
+
