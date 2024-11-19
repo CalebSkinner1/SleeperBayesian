@@ -115,10 +115,18 @@ singlePlayerMP <- function(n.iter, data, alpha, beta,
 
 # week function
 
-# only works if the results of some games remaining in week are unknown
-
-week_pred <- function(n.iter, data, week_data, alpha, beta,
+week_pred <- function(n.iter, data, week, gp_week, alpha, beta,
                       hSigma = 1, theSigma = 1, burnIn = 0){
+  
+  # select week data, only uncompleted games
+  week_data <- data %>% filter(week == week) %>%
+    mutate(sleeper_points = NA) %>%
+    slice(gp_week:n())
+  
+  # use only data from up to that week
+  data <- data %>% filter(week < week + 1) %>%
+    # only take uncompleted games from data
+    anti_join(week_data, by = join_by(game_no))
   
   #grabs sleeper points from full data tibble
   sleeper_points <- na.omit(data$sleeper_points)
