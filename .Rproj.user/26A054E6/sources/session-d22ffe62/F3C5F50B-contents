@@ -7,16 +7,16 @@ source("Gibbs Sampler Functions.R")
 source("Data Manipulation.R")
 
 # Let's look at one player - Shai Gilgeous Alexander, let's say we are trying to
-# make a decision to lock or hold him in Week 5 of his regular season
+# make a decision to lock or hold him in Week 4 of his regular season
 shai_full <- full_data %>% filter(str_detect(name, "Shai"))
 shai_priors <- last_year_statistics %>% filter(str_detect(name, "Shai"))
 
 
-# look at his posterior samples for week 5
-shai_week <- week_pred(1e+4, data = shai_full %>% filter(week < 5),
-                         week_data = shai_full %>% filter(week == 4) %>% mutate(sleeper_points = NA),
-                         alpha = shai_priors$n/2, beta = shai_priors$sse/2,
-                         burnIn = 5e+4)
+# look at his posterior samples for week 4
+shai_week <- week_pred(1e+4, data = shai_full,
+                       this_week = 4, gp_week = 4,
+                       alpha = shai_priors$n/2, beta = shai_priors$sse/2,
+                       burnIn = 5e+4)
 
 
 shai_week %>% summary

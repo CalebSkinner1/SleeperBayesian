@@ -115,16 +115,23 @@ singlePlayerMP <- function(n.iter, data, alpha, beta,
 
 # week function
 
-week_pred <- function(n.iter, data, week, gp_week, alpha, beta,
+week_pred <- function(n.iter, data, this_week, gp_week, alpha, beta,
                       hSigma = 1, theSigma = 1, burnIn = 0){
   
   # select week data, only uncompleted games
-  week_data <- data %>% filter(week == week) %>%
-    mutate(sleeper_points = NA) %>%
-    slice(gp_week:n())
+  week_data <- data %>% filter(week == this_week) %>%
+    mutate(sleeper_points = NA) %>% 
+    # remove first gp_week games
+    slice((gp_week+1):n())
   
+  # slice is weird, so correct
+  total_games <- data %>% filter(week == this_week) %>% nrow()
+  if(total_games == gp_week){
+    stop("Must have unplayed games remaining in week")
+    }
+
   # use only data from up to that week
-  data <- data %>% filter(week < week + 1) %>%
+  data <- data %>% filter(week < this_week + 1) %>%
     # only take uncompleted games from data
     anti_join(week_data, by = join_by(game_no))
   
