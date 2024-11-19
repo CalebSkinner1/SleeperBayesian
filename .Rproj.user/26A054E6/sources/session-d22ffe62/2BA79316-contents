@@ -190,4 +190,7 @@ prob_decision <- function(mcmc_object, week_data){
   
   return(exceed_prob %>% pull())}
 
-# need iterative? function that computes expectation of locking vs holding
+
+
+
+# need iterative(?) function that computes expectation of locking vs holding

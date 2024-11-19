@@ -118,13 +118,16 @@ nba_teams_25 <- load_nba_team_box(season = 2025) %>%
 
 # each player with missed games
 full_data <- load_nba_player_box(season = 2025) %>%
+  # regular season games
   filter(season_type == 2) %>%
   select(athlete_display_name, team_name, game_date) %>%
   left_join(df_2025, ., by = join_by(name == athlete_display_name, date == game_date)) %>%
   select(name, team_name) %>%
   distinct() %>%
+  # join with games that team played in
   full_join(nba_teams_25, by = join_by(team_name), relationship = "many-to-many") %>%
   select(name, date) %>%
+  # join back with all data
   left_join(df_2025, join_by(name, date)) %>%
   arrange(date) %>%
   group_by(name) %>%
@@ -132,10 +135,18 @@ full_data <- load_nba_player_box(season = 2025) %>%
   full_join(projections, join_by(name, game_no)) %>%
   filter(!is.na(sleeper_projection)) %>%
   ungroup() %>%
+  mutate(
+    # week of year - will only work through 2024
+    week = week(date) - 42,
+    last_updated_week = case_when(
+      wday(max(date, na.rm = TRUE)) == 1 ~ max(week, na.rm = TRUE) + 1,
+      .default = max(week, na.rm = TRUE)),
+    week = replace_na(week, last_updated_week[1])) %>%
+  select(-last_updated_week) %>%
   relocate(date) %>%
   relocate(game_no, .before = pts)
 
-# current year - old
+# current year - deprecated
 current_team <- df_2025 %>%
   filter(name %in% team) %>%
   group_by(name) %>%
@@ -148,10 +159,6 @@ current_team <- df_2025 %>%
 
 
 ## Delete everything
-rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton, wemby, portis, shai, keyonte)
-
-
-# Caleb to do
-# add projections for Wemby, Bobby Portis, Shai, and Keyonte George
-
+rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton,
+   wemby, portis, shai, keyonte)
   
