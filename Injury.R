@@ -1,6 +1,13 @@
 # load in data
 source("Data Manipulation.R")
+
+# libraries
 library("tidymodels")
+library("bayesrules")
+library("rstanarm")
+library("bayesplot")
+library("tidybayes")
+library("broom.mixed")
 
 # 2024-2025 ---------------------------------------------------------------
 
@@ -36,28 +43,6 @@ injury_data_25 <- load_nba_player_box(season = 2025) %>%
     three_games = lead(played, 3),
     back_to_back = if_else(date == lead(date) + days(1) & lead(played) == 1, 1, 0)) %>%
   drop_na()
-
-# model
-lr_spec <- logistic_reg() %>%
-  set_engine("glm") %>%
-  set_mode("classification")
-
-lr_fit_25 <- lr_spec %>%
-  fit(
-    played ~ play_rate + last_game + two_games + three_games + back_to_back,
-    data = injury_data_25)
-
-lr_fit_25 %>%
-  pluck("fit") %>%
-  summary()
-
-# augment(lr_fit, new_data = injury_data) %>% view()
-
-augment(lr_fit_25, new_data = injury_data_25) %>%
-  conf_mat(truth = played, estimate = .pred_class)
-
-augment(lr_fit_25, new_data = injury_data_25) %>%
-  accuracy(truth = played, estimate = .pred_class)
 
 # 2023-2024 ---------------------------------------------------------------
 
@@ -103,6 +88,34 @@ injury_data_24 <- load_nba_player_box(season = 2024) %>%
     back_to_back = if_else(date == lead(date) + days(1) & lead(played) == 1, 1, 0)) %>%
   drop_na()
 
+
+# Frequentist Baloney -----------------------------------------------------
+
+# 2024-25
+# model
+lr_spec <- logistic_reg() %>%
+  set_engine("glm") %>%
+  set_mode("classification")
+
+lr_fit_25 <- lr_spec %>%
+  fit(
+    played ~ play_rate + last_game + two_games + three_games + back_to_back,
+    data = injury_data_25)
+
+lr_fit_25 %>%
+  pluck("fit") %>%
+  summary()
+
+# augment(lr_fit, new_data = injury_data) %>% view()
+
+augment(lr_fit_25, new_data = injury_data_25) %>%
+  conf_mat(truth = played, estimate = .pred_class)
+
+augment(lr_fit_25, new_data = injury_data_25) %>%
+  accuracy(truth = played, estimate = .pred_class)
+
+# 2023-24
+
 lr_fit_24 <- lr_spec %>%
   fit(
     played ~ play_rate + last_game + two_games + three_games + back_to_back,
@@ -120,3 +133,46 @@ augment(lr_fit_24, new_data = injury_data_24) %>%
 # accuracy with three games is approx equal to accuracy with six games
 augment(lr_fit_24, new_data = injury_data_24) %>%
   accuracy(truth = played, estimate = .pred_class)
+
+# Stan Bayesian -----------------------------------------------------------
+
+# use global 2023-2024 results as prior for 2024-2025
+# this would be good if i can implement
+priors <- lr_fit_24 %>% tidy() %>% select(term, estimate, std.error)
+
+bayes_run_data <- injury_data_25 %>% filter(name %in% team)
+
+# Run a prior simulation
+injury_prior <- stan_glm(played ~ last_game + two_games + three_games + play_rate + back_to_back,
+                         data = injury_data_25,
+                         family = binomial(link = "logit"),
+                         prior_intercept = normal(priors$estimate[1], priors$std.error[1]^2*1000),
+                         prior = normal(priors$estimate[2:6], priors$std.error[2:6]^2*1000),
+                         chains = 4, iter = 5000*2,
+                         prior_PD = TRUE)
+
+# Run a posterior simulation
+injury_posterior <- stan_glm(played ~ last_game + two_games + three_games + play_rate + back_to_back,
+                             data = injury_data_25,
+                             family = binomial(link = "logit"),
+                             prior_intercept = normal(priors$estimate[1], priors$std.error[1]^2*1000),
+                             prior = normal(priors$estimate[2:6], priors$std.error[2:6]^2*1000),
+                             chains = 4, iter = 5000*2,
+                             prior_PD = FALSE)
+
+print(injury_posterior)
+prior_summary(injury_posterior)
+
+mcmc_trace(injury_posterior)
+mcmc_dens_overlay(injury_posterior)
+mcmc_acf(injury_posterior)
+
+# overall injury comments
+# difficult, because we often know more information than we are able to insert into the model
+# i.e if sleeper's model projects 0 points, then the player will likely miss the game.
+# i'm not sure how to account for this in the injury prediction model
+
+# on the other side, we need a way to show that players expected to score 0 points
+# are very likely to score 0 in the main model. Not sure how to quantify that
+
+
