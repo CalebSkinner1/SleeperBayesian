@@ -3,9 +3,9 @@
     "path": "~/Desktop/Rice/First Year/STAT 525 Bayesian Methods/SleeperBayesian/Modelling.R",
     "project_path": "Modelling.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "2356524375",
     "contents": "",
-    "dirty": true,
+    "dirty": false,
     "created": 1730922164818.0,
     "source_on_save": false,
     "relative_order": 3,
@@ -17,11 +17,11 @@
         "scrollLine": "34"
     },
     "folds": "",
-    "lastKnownWriteTime": 1732042193,
+    "lastKnownWriteTime": 1732047533,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1732043861936,
+    "last_content_update": 1732047533013,
     "read_only": false,
     "read_only_alternatives": []
 }

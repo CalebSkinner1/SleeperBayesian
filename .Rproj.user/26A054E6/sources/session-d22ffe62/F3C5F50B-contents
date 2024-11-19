@@ -7,7 +7,7 @@ source("Gibbs Sampler Functions.R")
 source("Data Manipulation.R")
 
 # Let's look at one player - Shai Gilgeous Alexander, let's say we are trying to
-# make a decision to lock or hold him in Week 5 of his regular season
+# make a decision to lock or hold him in Week 4 of his regular season
 shai_full <- full_data %>% filter(str_detect(name, "Shai"))
 shai_priors <- last_year_statistics %>% filter(str_detect(name, "Shai"))
 
@@ -29,11 +29,13 @@ shai_week %>% prob_decision(best_score = 45, remaining_games = 1, week_data = NU
 # altogether - estimate cumulative density
 N <- 10000
 x <- seq(0, 80, length.out = N)
-shai_week %>% prob_decision(best_score = x, remaining_games = 8, week_data = NULL) %>%
+shai_week %>% prob_decision(best_score = x, remaining_games = 3, week_data = NULL) %>%
   ggplot() +
   geom_line(aes(score, exceed_prob))
 
 
-
+shai_week %>% prob_decision(best_score = x, remaining_games = 4, week_data = NULL) %>%
+  filter(exceed_prob < .5) %>%
+  slice(1)
 
 

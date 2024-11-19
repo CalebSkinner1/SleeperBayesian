@@ -199,7 +199,7 @@ prob_decision <- function(mcmc_object, week_data = NULL, best_score = NULL, rema
     }}
   
   # compute max remaining score
-    df <- shai_week %>% as_tibble() %>%
+    df <- mcmc_object %>% as_tibble() %>%
       # select only unplayed games
       select(tail(names(.), remaining_games)) %>%
       rowwise() %>%
