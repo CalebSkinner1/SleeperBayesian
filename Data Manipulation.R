@@ -68,33 +68,74 @@ green <- c(22.48, 20.5, 19.52, 20.25, 19.9, 20.82, 22.79, 20.25, 18.69, 17.61, 2
 ayton <- c(21.34, 23.24, 23.04, 23.63, 23.7, 25.02, 23.63, 21.71, 24.25, 21.77, 22.73, 0, 0, 22.48, 20.38, 21.65, 21.65)
 poole <- c(21.14, 21.21, 21.54, 22.55, 21.86, 22.56, 22.98, 16.79, 20.59, 21.61, 22.12, 19.45, 17.15, 18.71)
 sexton <- c(18.84, 18.73, 18.74, 18.46, 16.3, 19.61, 18.58, 19.38, 16.27, 18.29, 18.02, 17.32, 13.55, 16.3, 15.13, 12.64)
-
+wemby <- c(34.27, 34.71, 33.58, 34.31, 34.76, 34.48, 33.48, 34.07, 35.2, 34.49, 33.95, 36.2, 35.56, 0, 0, 34.27, 38.68)
+portis <- c(18.12, 19.84, 19.67, 19.45, 19.52, 19, 26.19, 19.26, 19.15, 18.27, 18.21, 0, 18.77, 16.83, 15.83, 18.1, 17.65)
+shai <- c(31.63, 32.04, 31.49, 32.16, 31.07, 30.3, 30.32, 30.77, 31.69, 30.81, 31.73, 33.37, 33.15, 33.7, 34.1, 32.57)
+keyonte <- c(15.94, 15.75, 15.8, 16.76, 17.49, 18.9, 18.72, 17.66, 0, 16.82, 17.63, 18.26, 15.62, 17.03, 16.5, 14.81)
+  
 projections <- tibble(
   "name" = c(rep("Kyrie Irving", length(irving)),
-               rep("Jalen Suggs", length(suggs)),
-               rep("Miles Bridges", length(bridges)),
-               rep("DeMar DeRozan", length(derozan)),
-               rep("Alperen Sengun", length(sengun)),
-               rep("Draymond Green", length(green)),
-               rep("Deandre Ayton", length(ayton)),
-               rep("Jordan Poole", length(poole)),
-               rep("Collin Sexton", length(sexton))),
+             rep("Jalen Suggs", length(suggs)),
+             rep("Miles Bridges", length(bridges)),
+             rep("DeMar DeRozan", length(derozan)),
+             rep("Alperen Sengun", length(sengun)),
+             rep("Draymond Green", length(green)),
+             rep("Deandre Ayton", length(ayton)),
+             rep("Jordan Poole", length(poole)),
+             rep("Collin Sexton", length(sexton)),
+             rep("Victor Wembanyama", length(wemby)),
+             rep("Bobby Portis", length(portis)),
+             rep("Shai Gilgeous-Alexander", length(shai)),
+             rep("Keyonte George", length(keyonte))),
   sleeper_projection = c(irving,
-                 suggs,
-                 bridges,
-                 derozan,
-                 sengun,
-                 green,
-                 ayton,
-                 poole,
-                 sexton)) %>%
+                         suggs,
+                         bridges,
+                         derozan,
+                         sengun,
+                         green,
+                         ayton,
+                         poole,
+                         sexton,
+                         wemby,
+                         portis,
+                         shai,
+                         keyonte)) %>%
   group_by(name) %>%
   mutate(game_no = row_number())
 
-## Delete everything
-rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton)
 
-# current year
+# Compiling into one df ---------------------------------------------------
+
+# all projected games
+
+
+
+# teams and games they play
+nba_teams_25 <- load_nba_team_box(season = 2025) %>%
+  filter(season_type == 2) %>%
+  select(game_date, team_name) %>%
+  rename(date = game_date)
+
+# each player with missed games
+full_data <- load_nba_player_box(season = 2025) %>%
+  filter(season_type == 2) %>%
+  select(athlete_display_name, team_name, game_date) %>%
+  left_join(df_2025, ., by = join_by(name == athlete_display_name, date == game_date)) %>%
+  select(name, team_name) %>%
+  distinct() %>%
+  full_join(nba_teams_25, by = join_by(team_name), relationship = "many-to-many") %>%
+  select(name, date) %>%
+  left_join(df_2025, join_by(name, date)) %>%
+  arrange(date) %>%
+  group_by(name) %>%
+  mutate(game_no = row_number()) %>%
+  full_join(projections, join_by(name, game_no)) %>%
+  filter(!is.na(sleeper_projection)) %>%
+  ungroup() %>%
+  relocate(date) %>%
+  relocate(game_no, .before = pts)
+
+# current year - old
 current_team <- df_2025 %>%
   filter(name %in% team) %>%
   group_by(name) %>%
@@ -104,19 +145,10 @@ current_team <- df_2025 %>%
   ungroup() %>% 
   full_join(projections, by = join_by("name", "game_no")) %>%
   select(date, name, game_no, sleeper_points, sleeper_projection)
-  
-
-# visualize games for distribution estimate
-# df_2025 %>% filter(name %in% team[1:4]) %>%
-#   ggplot() +
-#   geom_density(aes(x = sleeper_points, color = name))
-# 
-# df_2025 %>% filter(name %in% team[5:9]) %>%
-#   ggplot() +
-#   geom_density(aes(x = sleeper_points, color = name))
 
 
-
+## Delete everything
+rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton, wemby, portis, shai, keyonte)
 
 
 # Caleb to do

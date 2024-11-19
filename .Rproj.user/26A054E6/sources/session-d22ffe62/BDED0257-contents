@@ -11,12 +11,6 @@ library("broom.mixed")
 
 # 2024-2025 ---------------------------------------------------------------
 
-# teams and games they play
-nba_teams_25 <- load_nba_team_box(season = 2025) %>%
-  filter(season_type == 2) %>%
-  select(game_date, team_name) %>%
-  rename(date = game_date)
-
 # each player with missed games
 injury_data_25 <- load_nba_player_box(season = 2025) %>%
   filter(season_type == 2) %>%
