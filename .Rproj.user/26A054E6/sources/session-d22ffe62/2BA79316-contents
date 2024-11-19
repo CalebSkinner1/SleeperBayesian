@@ -1,4 +1,6 @@
 # Gibbs Sampler Functions Page
+library("tidyverse")
+library("coda")
 
 # only prior mean
 singlePlayerModel <- function(n.iter, data, priorMean, alpha, beta, 
@@ -113,6 +115,8 @@ singlePlayerMP <- function(n.iter, data, alpha, beta,
 
 # week function
 
+# only works if the results of some games remaining in week are unknown
+
 week_pred <- function(n.iter, data, week_data, alpha, beta,
                       hSigma = 1, theSigma = 1, burnIn = 0){
   
@@ -122,7 +126,7 @@ week_pred <- function(n.iter, data, week_data, alpha, beta,
   #grabs projections from data tibble
   priorMean <- data$sleeper_projection[1:gamesPlayed] 
   #initializes thetaStarts
-  thetaStarts <- rep(20, gamesPlayed) 
+  thetaStarts <- rep(20, gamesPlayed)
   # grabs estimates for each game remaining in the week
   sleepEst <- week_data %>% filter(is.na(sleeper_points)) %>% select(sleeper_projection) %>% pull()
   
@@ -176,19 +180,36 @@ week_pred <- function(n.iter, data, week_data, alpha, beta,
 
 
 # probability decision boundary
-prob_decision <- function(mcmc_object, week_data){
+prob_decision <- function(mcmc_object, week_data = NULL, best_score = NULL, remaining_games = NULL){
+  # enter best_score for specific integer or week_data for function to directly compute
+  
+  # remaining games for player in week
+  if(is.null(remaining_games)){
+    if(is.null(week_data)){
+      stop("enter data")
+      remaining_games <- sum(is.na(week_data$sleeper_points))
+    }}
+  
+  
   # best score of player thus far
-  best_score <- max(week_data$sleeper_points, na.rm = TRUE)
+  if(is.null(best_score)){
+    if(is.null(week_data)){
+      stop("enter data")
+    best_score <- max(week_data$sleeper_points, na.rm = TRUE)
+    }}
   
-  # compute number of samples where future score exceeds current best score
-  exceed_prob <- mcmc_object %>% as_tibble() %>%
-    rowwise() %>%
-    mutate(exceed = max(c_across(contains("newY"))) > best_score) %>%
-    group_by() %>%
-    summarize(
-      exceed_prob = mean(exceed))
-  
-  return(exceed_prob %>% pull())}
+  # compute max remaining score
+    df <- shai_week %>% as_tibble() %>%
+      # select only unplayed games
+      select(tail(names(.), remaining_games)) %>%
+      rowwise() %>%
+      mutate(max_score = max(c_across(contains("newY"))))
+    
+    # cdf
+    cdf <- tibble(
+      score = best_score,
+      exceed_prob = best_score %>% map_dbl(~mean(df$max_score > .x)))
+  return(cdf)}
 
 
 

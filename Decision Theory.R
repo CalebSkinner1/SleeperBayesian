@@ -1,5 +1,34 @@
 # Decision Theory
 
+# load functions
+source("Gibbs Sampler Functions.R")
+
+# load data
+source("Data Manipulation.R")
 
 # Let's look at one player - Shai Gilgeous Alexander, let's say we are trying to
-# make a decision to lock or hold him in Week 2 of his regular season
+# make a decision to lock or hold him in Week 5 of his regular season
+shai_full <- full_data %>% filter(str_detect(name, "Shai"))
+shai_priors <- last_year_statistics %>% filter(str_detect(name, "Shai"))
+
+
+# look at his posterior samples for week 4
+shai_week <- week_pred(1e+4, data = shai_full %>% filter(week < 5),
+                         week_data = shai_full %>% filter(week == 4) %>% mutate(sleeper_points = NA),
+                         alpha = shai_priors$n/2, beta = shai_priors$sse/2,
+                         burnIn = 5e+4)
+
+
+shai_week %>% summary
+shai_week %>% effectiveSize()
+shai_week %>% plot
+
+# function computes probability of exceeding score in future games
+shai_week %>% prob_decision(best_score = 45, remaining_games = 1, week_data = NULL)
+
+# altogether - estimate cumulative density
+N <- 10000
+x <- seq(0, 80, length.out = N)
+shai_week %>% prob_decision(best_score = x, remaining_games = 8, week_data = NULL) %>%
+  ggplot() +
+  geom_line(aes(score, exceed_prob))

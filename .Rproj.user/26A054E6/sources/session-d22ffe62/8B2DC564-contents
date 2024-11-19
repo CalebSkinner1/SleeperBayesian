@@ -1,6 +1,3 @@
-library("tidyverse")
-library("coda")
-
 # load in data
 source("Data Manipulation.R")
 # load in functions
