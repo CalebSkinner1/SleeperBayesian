@@ -122,3 +122,6 @@ multiplePlayers <- function(players, thisWeek, lastDayPlayed = 0) {
 testPlayers <- c("Kevin Huerter", "Pippen", "Dort", "DeRozan", "Miles Bridges")
 multiChain <- multiplePlayers(testPlayers, 5)
 multiChain[[3]] <- cbind(multiChain[[3]], newY_3 = 0)
+postYs <- multiChain %>% map(`[`, , c("newY_2", "newY_3"))
+postYs[[3]] <- mcmc(postYs[[3]][, 1])
+postYs %>% map2(cbind, c())

@@ -13,6 +13,13 @@ naiveAlphasBetas <- df_2024 %>% group_by(name) %>% summarise(GP = length(name),
 
 teamParams <- naiveAlphasBetas %>% filter(name %in% team)
 
+priorPuller <- function(player_names) {
+  
+  return(naiveAlphasBetas %>% filter(name %in% player_names) %>%
+           select(GP, Betas) %>% as.numeric())
+  
+}
+
 ## Summary Stats for Prior Standard Deviations
 map(map2(teamParams$GP/2, teamParams$Betas/2, 
       ~1/sqrt(rgamma(1e+4, .x, .y))), summary)
@@ -84,3 +91,10 @@ week_pred(1e+4, data = current_team %>% filter(str_detect(name, "Sengun")),
 Sys.time() -t
 
 # function that computes exp
+
+## Another Example
+multiSamples <- singlePlayerMP(1e+4, data = current_team %>% filter(name == "Draymond Green"),
+                               alpha = naiveAlphasBetas$GP[8]/2, beta = naiveAlphasBetas$Betas[8]/2,
+                               burnIn = 5e+4)
+multiSamples %>% summary
+multiSamples %>% effectiveSize()
