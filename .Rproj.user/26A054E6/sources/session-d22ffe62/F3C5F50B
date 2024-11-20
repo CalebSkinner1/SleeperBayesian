@@ -3,7 +3,7 @@
     "path": "~/Desktop/Rice/First Year/STAT 525 Bayesian Methods/SleeperBayesian/Decision Theory.R",
     "project_path": "Decision Theory.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "3575299061",
     "contents": "",
     "dirty": false,
     "created": 1732042564507.0,
@@ -13,15 +13,15 @@
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "60,44",
-        "scrollLine": "35"
+        "cursorPosition": "36,36",
+        "scrollLine": "15"
     },
-    "folds": "",
-    "lastKnownWriteTime": 1732064207,
+    "folds": "45|41|76|2|\n",
+    "lastKnownWriteTime": 1732133019,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1732064207765,
+    "last_content_update": 1732133019905,
     "read_only": false,
     "read_only_alternatives": []
 }
