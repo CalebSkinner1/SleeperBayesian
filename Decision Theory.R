@@ -11,10 +11,13 @@ source("Data Manipulation.R")
 shai_full <- full_data %>% filter(str_detect(name, "Shai"))
 shai_priors <- last_year_statistics %>% filter(str_detect(name, "Shai"))
 
+dort_full <- full_data %>% filter(str_detect(name, "Dort"))
+dort_priors <- last_year_statistics %>% filter(str_detect(name, "Dort"))
+
 
 # look at his posterior samples for week 4
 shai_week <- week_pred(1e+4, data = shai_full,
-                       this_week = 4, gp_week = 0,
+                       this_week = 3, gp_week = 0,
                        alpha = shai_priors$n/2, beta = shai_priors$sse/2,
                        burnIn = 5e+4)
 
@@ -35,7 +38,7 @@ shai_week %>% prob_decision(best_score = x, remaining_games = 1, week_data = NUL
 
 # rough decision boundary using cdf of max method
 shai_week %>%
-  prob_decision(best_score = x, remaining_games = 4, week_data = NULL) %>%
+  prob_decision(best_score = x, remaining_games = 3, week_data = NULL) %>%
   filter(exceed_prob < .5) %>%
   slice(1)
 
@@ -73,12 +76,20 @@ b_induction_dec <- function(mcmc_object){
   
   }
 
-week_pred(1e+4, data = shai_full,
-          this_week = 2, gp_week = 0,
-          alpha = shai_priors$n/2, beta = shai_priors$sse/2,
+dort_week <- week_pred(1e+4, data = dort_full,
+          this_week = 3, gp_week = 0,
+          alpha = dort_priors$n/2, beta = dort_priors$sse/2,
+          burnIn = 5e+4)
+
+week_pred(1e+4, data = dort_full,
+          this_week = 3, gp_week = 0,
+          alpha = dort_priors$n/2, beta = dort_priors$sse/2,
           burnIn = 5e+4) %>%
   b_induction_dec()
 
-
+dort_week %>%
+  prob_decision(best_score = x, remaining_games = 1, week_data = NULL) %>%
+  filter(exceed_prob < .5) %>%
+  slice(1)
 
 
