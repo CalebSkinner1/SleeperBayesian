@@ -2,26 +2,23 @@
 
 # load functions
 source("Gibbs Sampler Functions.R")
+source("D_WeekPred.R")
 
 # load data
 source("Data Manipulation.R")
 
 # Let's look at one player - Shai Gilgeous Alexander, let's say we are trying to
 # make a decision to lock or hold him in Week 4 of his regular season
+
+# Shai --------------------------------------------------------------------
 shai_full <- full_data %>% filter(str_detect(name, "Shai"))
 shai_priors <- last_year_statistics %>% filter(str_detect(name, "Shai"))
-
-dort_full <- full_data %>% filter(str_detect(name, "Dort"))
-dort_priors <- last_year_statistics %>% filter(str_detect(name, "Dort"))
-
 
 # look at his posterior samples for week 4
 shai_week <- week_pred(1e+4, data = shai_full,
                        this_week = 3, gp_week = 0,
                        alpha = shai_priors$n/2, beta = shai_priors$sse/2,
                        burnIn = 5e+4)
-
-
 shai_week %>% summary
 shai_week %>% effectiveSize()
 shai_week %>% plot
@@ -41,6 +38,17 @@ shai_week %>%
   prob_decision(best_score = x, remaining_games = 3, week_data = NULL) %>%
   filter(exceed_prob < .5) %>%
   slice(1)
+
+
+# Dort --------------------------------------------------------------------
+dort_full <- full_data %>% filter(str_detect(name, "Dort"))
+dort_priors <- last_year_statistics %>% filter(str_detect(name, "Dort"))
+
+
+dort_week <- week_pred(1e+4, data = dort_full,
+                       this_week = 3, gp_week = 0,
+                       alpha = dort_priors$n/2, beta = dort_priors$sse/2,
+                       burnIn = 5e+4)
 
 # Backwards-Induction Decision Theory -------------------------------------
 b_induction_dec <- function(mcmc_object){
@@ -76,20 +84,28 @@ b_induction_dec <- function(mcmc_object){
   
   }
 
-dort_week <- week_pred(1e+4, data = dort_full,
-          this_week = 3, gp_week = 0,
-          alpha = dort_priors$n/2, beta = dort_priors$sse/2,
-          burnIn = 5e+4)
 
-week_pred(1e+4, data = dort_full,
+# for comparison
+week_pred(1e+4, data = shai_full,
           this_week = 3, gp_week = 0,
-          alpha = dort_priors$n/2, beta = dort_priors$sse/2,
+          alpha = shai_priors$n/2, beta = shai_priors$sse/2,
           burnIn = 5e+4) %>%
   b_induction_dec()
 
-dort_week %>%
+shai_week %>%
   prob_decision(best_score = x, remaining_games = 1, week_data = NULL) %>%
   filter(exceed_prob < .5) %>%
   slice(1)
+
+
+# Backwards Induction Multiple Players ------------------------------------
+
+testPlayers <- c("Kevin Huerter", "Pippen", "Dort", "DeRozan", "Miles Bridges")
+multiChain <- multiplePlayers(testPlayers, 5)
+
+
+
+
+
 
 

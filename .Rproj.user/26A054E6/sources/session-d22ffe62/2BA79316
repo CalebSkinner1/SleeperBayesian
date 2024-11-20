@@ -3,7 +3,7 @@
     "path": "~/Desktop/Rice/First Year/STAT 525 Bayesian Methods/SleeperBayesian/Gibbs Sampler Functions.R",
     "project_path": "Gibbs Sampler Functions.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "1529793698",
     "contents": "",
     "dirty": false,
     "created": 1732029458607.0,
@@ -16,12 +16,12 @@
         "cursorPosition": "231,0",
         "scrollLine": "55"
     },
-    "folds": "7|43|51|0|\n58|40|113|0|\n118|60|193|0|\n",
+    "folds": "7|43|51|0|\n58|40|113|0|\n118|60|193|0|\n197|100|226|13|\n",
     "lastKnownWriteTime": 1732060563,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1732132717583,
+    "last_content_update": 1732144252128,
     "read_only": false,
     "read_only_alternatives": []
 }
