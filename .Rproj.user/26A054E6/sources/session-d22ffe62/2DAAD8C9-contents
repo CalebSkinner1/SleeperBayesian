@@ -131,7 +131,7 @@ full_data <- load_nba_player_box(season = 2025) %>%
   full_join(nba_teams_25, by = join_by(team_name), relationship = "many-to-many") %>%
   select(name, date) %>%
   # join back with all data
-  left_join(df_2025, join_by(name, date)) %>%
+  left_join(df_2025, join_by(name, date)) %>% 
   arrange(date) %>%
   group_by(name) %>%
   mutate(game_no = row_number()) %>%
