@@ -2,6 +2,7 @@ library("hoopR")
 library("tidyverse")
 library("janitor")
 
+load_nba_schedule(seasons = 2025) %>% select(game_date, )
 
 # sleeper point computation
 source("Scrape.R")

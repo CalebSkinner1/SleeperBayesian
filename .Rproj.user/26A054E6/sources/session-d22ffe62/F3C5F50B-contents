@@ -101,8 +101,10 @@ shai_week %>%
 # Backwards Induction Multiple Players ------------------------------------
 
 testPlayers <- c("Kevin Huerter", "Pippen", "Dort", "DeRozan", "Miles Bridges")
-multiChain <- multiplePlayers(testPlayers, 5)
 
+t <- Sys.time()
+multiChain <- multiplePlayers(testPlayers, 5)
+Sys.time() - t
 
 
 
