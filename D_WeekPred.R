@@ -1,4 +1,6 @@
 ## Have data saved globally
+library(tidyverse)
+library(coda)
 
 priorPuller <- function(player_names) {
   
@@ -7,7 +9,7 @@ priorPuller <- function(player_names) {
   
 }
 
-week_pred <- function(n.iter, playerName, this_week, gp_week = 0,
+weekPred <- function(n.iter, playerName, this_week, gp_week = 0,
                      consistencyParams = priorPuller(playerName), 
                      hSigma = 1, theSigma = 1, burnIn = 0) {
   
@@ -16,7 +18,7 @@ week_pred <- function(n.iter, playerName, this_week, gp_week = 0,
   ####
   
   ## Find Player Data
-  data <- full_data %>% filter(name == playerName, 
+  data <- full_data %>% filter(str_detect(name, playerName), 
                                week <= this_week) 
   
   ## Week Safety Check
@@ -102,5 +104,20 @@ week_pred <- function(n.iter, playerName, this_week, gp_week = 0,
   
 }
 
-testPlayer <- weekPred(3.5e+4, "Shai Gilgeous-Alexander", 5, burnIn = 5e+4)
-plot(testPlayer[, 7])
+testPlayer <- weekPred(3.5e+4, "Shai Gilgeous-Alexander", 5, 1, burnIn = 5e+4)
+summary(testPlayer)
+plot(testPlayer[, 17])
+plot(density(exp(testPlayer[, 17])))
+exp(testPlayer[, 17]) %>% HPDinterval()
+
+## Dort Example
+dortSim <- weekPred(5e+4, "Luguentz Dort", 5, 1, burnIn = 5e+4)
+
+multiplePlayers <- function(players, thisWeek, lastDayPlayed = 0) {
+  
+  return(mcmc.list(map(players, ~weekPred(5e+4, .x, thisWeek, burnIn = 5e+4))))
+  
+}
+
+testPlayers <- c("Kevin Huerter", "Pippen", "Dort", "DeRozan", "Miles Bridges")
+multiChain <- multiplePlayers(testPlayers, 5)
