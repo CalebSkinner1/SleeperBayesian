@@ -2,7 +2,6 @@ library("hoopR")
 library("tidyverse")
 library("janitor")
 
-
 # sleeper point computation
 source("Scrape.R")
 
@@ -118,12 +117,12 @@ projections <- tibble(
 
 # all projected games
 
-
-
 # teams and games they play
-nba_teams_25 <- load_nba_team_box(season = 2025) %>%
+nba_teams_25 <- load_nba_schedule(season = 2025) %>%
   filter(season_type == 2) %>%
-  select(game_date, team_name) %>%
+  select(game_date, home_name, away_name) %>%
+  pivot_longer(cols = c(home_name, away_name), names_to = "loc", values_to = "team_name") %>%
+  select(-loc) %>%
   rename(date = game_date)
 
 # each player with missed games
@@ -147,12 +146,7 @@ full_data <- load_nba_player_box(season = 2025) %>%
   ungroup() %>%
   mutate(
     # week of year - will only work through 2024
-    week = week(date) - 42,
-    last_updated_week = case_when(
-      wday(max(date, na.rm = TRUE)) == 1 ~ max(week, na.rm = TRUE) + 1,
-      .default = max(week, na.rm = TRUE)),
-    week = replace_na(week, last_updated_week[1])) %>%
-  select(-last_updated_week) %>%
+    week = week(date) - 42) %>%
   relocate(date) %>%
   relocate(game_no, .before = pts)
 
