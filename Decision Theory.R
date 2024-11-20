@@ -13,10 +13,10 @@ shai_priors <- last_year_statistics %>% filter(str_detect(name, "Shai"))
 
 
 # look at his posterior samples for week 4
-shai_week <- week_pred(1e+4, data = shai_full %>% filter(week < 5),
-                         week_data = shai_full %>% filter(week == 4) %>% mutate(sleeper_points = NA),
-                         alpha = shai_priors$n/2, beta = shai_priors$sse/2,
-                         burnIn = 5e+4)
+shai_week <- week_pred(1e+4, data = shai_full,
+                       this_week = 4, gp_week = 0,
+                       alpha = shai_priors$n/2, beta = shai_priors$sse/2,
+                       burnIn = 5e+4)
 
 
 shai_week %>% summary
@@ -29,13 +29,56 @@ shai_week %>% prob_decision(best_score = 45, remaining_games = 1, week_data = NU
 # altogether - estimate cumulative density
 N <- 10000
 x <- seq(0, 80, length.out = N)
-shai_week %>% prob_decision(best_score = x, remaining_games = 3, week_data = NULL) %>%
+shai_week %>% prob_decision(best_score = x, remaining_games = 1, week_data = NULL) %>%
   ggplot() +
   geom_line(aes(score, exceed_prob))
 
-
-shai_week %>% prob_decision(best_score = x, remaining_games = 4, week_data = NULL) %>%
+# rough decision boundary using cdf of max method
+shai_week %>%
+  prob_decision(best_score = x, remaining_games = 4, week_data = NULL) %>%
   filter(exceed_prob < .5) %>%
   slice(1)
+
+# Backwards-Induction Decision Theory -------------------------------------
+b_induction_dec <- function(mcmc_object){
+  df <- mcmc_object %>% as_tibble() %>%
+    select(contains("newY"))
+  
+  # number of games to be estimated
+  games <- ncol(df)
+  
+  # initialize tibble to store data
+  dec_boundary <- tibble()
+  
+  # mean posterior for last game
+  mean <- df[[games]] %>% mean()
+  for(i in games:2){
+    # add mean value to decision boundary
+    dec_boundary <- tibble(game = i - 1, dec_boundary = mean) %>%
+      bind_rows(dec_boundary)
+    
+    # compute T (expected score after game i-1)
+    # this code is way to complex because I can't think of a simpler way to do it
+    new_T <- df[i-1] %>%
+      rename_with(~paste0("y"), contains("Y")) %>%
+      rowwise() %>%
+      # user keeps score if greater than mean for next game
+      mutate(t = max(y, mean)) %>%
+      select(t) %>% pull()
+    
+    # compute new mean
+    mean <- new_T %>% mean()
+  }
+  return(dec_boundary)
+  
+  }
+
+week_pred(1e+4, data = shai_full,
+          this_week = 2, gp_week = 0,
+          alpha = shai_priors$n/2, beta = shai_priors$sse/2,
+          burnIn = 5e+4) %>%
+  b_induction_dec()
+
+
 
 
