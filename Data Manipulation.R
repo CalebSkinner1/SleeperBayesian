@@ -72,6 +72,7 @@ wemby <- c(34.27, 34.71, 33.58, 34.31, 34.76, 34.48, 33.48, 34.07, 35.2, 34.49, 
 portis <- c(18.12, 19.84, 19.67, 19.45, 19.52, 19, 26.19, 19.26, 19.15, 18.27, 18.21, 0, 18.77, 16.83, 15.83, 18.1, 17.65)
 shai <- c(31.63, 32.04, 31.49, 32.16, 31.07, 30.3, 30.32, 30.77, 31.69, 30.81, 31.73, 33.37, 33.15, 33.7, 34.1, 32.57)
 keyonte <- c(15.94, 15.75, 15.8, 16.76, 17.49, 18.9, 18.72, 17.66, 0, 16.82, 17.63, 18.26, 15.62, 17.03, 16.5, 14.81)
+dort <- c(14.56, 14.75, 14.76, 14.36, 13.94, 13.69, 13.78, 14.12, 13.9, 14.95, 16.41, 17.3, 18.57, 17.43)
   
 projections <- tibble(
   "name" = c(rep("Kyrie Irving", length(irving)),
@@ -86,7 +87,8 @@ projections <- tibble(
              rep("Victor Wembanyama", length(wemby)),
              rep("Bobby Portis", length(portis)),
              rep("Shai Gilgeous-Alexander", length(shai)),
-             rep("Keyonte George", length(keyonte))),
+             rep("Keyonte George", length(keyonte)),
+             rep("Lugentz Dort", length(dort))),
   sleeper_projection = c(irving,
                          suggs,
                          bridges,
@@ -99,7 +101,8 @@ projections <- tibble(
                          wemby,
                          portis,
                          shai,
-                         keyonte)) %>%
+                         keyonte, 
+                         dort)) %>%
   group_by(name) %>%
   mutate(game_no = row_number())
 
@@ -146,19 +149,19 @@ full_data <- load_nba_player_box(season = 2025) %>%
   relocate(date) %>%
   relocate(game_no, .before = pts)
 
-# current year - deprecated
-current_team <- df_2025 %>%
-  filter(name %in% team) %>%
-  group_by(name) %>%
-  arrange(date) %>%
-  mutate(
-    game_no = row_number()) %>%
-  ungroup() %>% 
-  full_join(projections, by = join_by("name", "game_no")) %>%
-  select(date, name, game_no, sleeper_points, sleeper_projection)
+# # current year - deprecated
+# current_team <- df_2025 %>%
+#   filter(name %in% team) %>%
+#   group_by(name) %>%
+#   arrange(date) %>%
+#   mutate(
+#     game_no = row_number()) %>%
+#   ungroup() %>% 
+#   full_join(projections, by = join_by("name", "game_no")) %>%
+#   select(date, name, game_no, sleeper_points, sleeper_projection)
 
 
 ## Delete everything
 rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton,
-   wemby, portis, shai, keyonte)
+   wemby, portis, shai, keyonte, dort)
   
