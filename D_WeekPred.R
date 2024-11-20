@@ -4,7 +4,7 @@ library(coda)
 
 priorPuller <- function(player_names) {
   
-  return(naiveAlphasBetas %>% filter(name %in% player_names) %>%
+  return(naiveAlphasBetas %>% filter(str_detect(name, player_names)) %>%
            select(GP, Betas) %>% as.numeric())
   
 }
@@ -115,9 +115,10 @@ dortSim <- weekPred(5e+4, "Luguentz Dort", 5, 1, burnIn = 5e+4)
 
 multiplePlayers <- function(players, thisWeek, lastDayPlayed = 0) {
   
-  return(mcmc.list(map(players, ~weekPred(5e+4, .x, thisWeek, burnIn = 5e+4))))
+  return(map(players, ~weekPred(5e+4, .x, thisWeek, burnIn = 5e+4)))
   
 }
 
 testPlayers <- c("Kevin Huerter", "Pippen", "Dort", "DeRozan", "Miles Bridges")
 multiChain <- multiplePlayers(testPlayers, 5)
+multiChain[[3]] <- cbind(multiChain[[3]], newY_3 = 0)
