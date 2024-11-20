@@ -124,4 +124,10 @@ multiChain <- multiplePlayers(testPlayers, 5)
 multiChain[[3]] <- cbind(multiChain[[3]], newY_3 = 0)
 postYs <- multiChain %>% map(`[`, , c("newY_2", "newY_3"))
 postYs[[3]] <- mcmc(postYs[[3]][, 1])
-postYs %>% map2(cbind, c())
+rankYs <- postYs %>% map2(c(17, 23, 22, 0, 17), cbind)
+rankYs <- list(apply(rankYs[[1]], 1, rank)[3, ],
+     apply(rankYs[[2]], 1, rank)[3, ],
+     apply(rankYs[[3]], 1, rank)[2, ],
+     apply(rankYs[[4]], 1, rank)[3, ],
+     apply(rankYs[[5]], 1, rank)[3, ])
+
