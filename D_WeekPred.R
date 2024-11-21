@@ -119,6 +119,7 @@ multiplePlayers <- function(players, thisWeek, lastDayPlayed = 0) {
   
 }
 
+# test
 testPlayers <- c("Kevin Huerter", "Pippen", "Dort", "DeRozan", "Miles Bridges")
 multiChain <- multiplePlayers(testPlayers, 5)
 multiChain[[3]] <- cbind(multiChain[[3]], newY_3 = 0)
