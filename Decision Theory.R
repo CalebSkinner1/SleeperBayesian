@@ -50,7 +50,7 @@ dort_week <- week_pred(1e+4, data = dort_full,
                        burnIn = 5e+4)
 
 # Backwards-Induction Decision Theory -------------------------------------
-b_induction_dec <- function(mcmc_object){
+single_bid <- function(mcmc_object){
   df <- mcmc_object %>% as_tibble() %>%
     select(contains("newY"))
   
@@ -89,7 +89,7 @@ week_pred(1e+4, data = shai_full,
           this_week = 3, gp_week = 0,
           alpha = shai_priors$n/2, beta = shai_priors$sse/2,
           burnIn = 5e+4) %>%
-  b_induction_dec()
+  single_bid()
 
 shai_week %>%
   prob_decision(best_score = x, remaining_games = 1, week_data = NULL) %>%
@@ -98,5 +98,57 @@ shai_week %>%
 
 
 # Backwards Induction Multiple Players ------------------------------------
+
+testPlayers <- c("Kevin Huerter", "Scotty Pippen Jr.", "Luguentz Dort", "DeMar DeRozan", "Miles Bridges")
+# 40.5 seconds
+t <- Sys.time()
+multiChain <- multiplePlayers(testPlayers, 5)
+Sys.time() - t
+
+multi_bid <- function(mcmc_object, data, this_week, testPlayers){
+  player_order <- testPlayers %>% as_tibble() %>% mutate(order = row_number()) %>% rename(name = value)
+  
+  df <- full_data %>% filter(week == this_week, name %in% testPlayers) %>%
+    # need to identify player order to grab from multiChain
+    left_join(player_order, by = join_by(name))
+  
+  # grab first day that hasn't happened yet
+  first_day <- df %>% filter(!is.na(sleeper_points)) %>% group_by() %>% summarize(max(date)) %>% pull() + 1
+  
+  # last day in week
+  last_day <- max(df$date)
+  
+  # Start with last day
+  # players playing on last day
+  players_last_day <- df %>% filter(date == last_day) %>% select(order) %>% pull()
+  
+  # chains for last day
+  values_last_day <- multiChain[players_last_day]
+  mean <- map_dbl
+  
+  
+  
+  
+  
+  
+}
+
+
+
+multiChain
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
