@@ -161,6 +161,14 @@ full_data <- load_nba_player_box(season = 2025) %>%
 #   full_join(projections, by = join_by("name", "game_no")) %>%
 #   select(date, name, game_no, sleeper_points, sleeper_projection)
 
+## Naive Alphas
+#### Not Divided by 2 yet :(
+naiveAlphasBetas <- df_2024 %>% group_by(name) %>% summarise(GP = length(name), 
+                                                             Betas = (GP - 1) * var(sleeper_points)) %>%
+  ungroup()
+
+teamParams <- naiveAlphasBetas %>% filter(name %in% team)
+
 
 ## Delete everything
 rm(irving, suggs, bridges, derozan, sengun, green, ayton, poole, sexton,

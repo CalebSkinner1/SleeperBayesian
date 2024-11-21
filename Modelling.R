@@ -13,13 +13,6 @@ naiveAlphasBetas <- df_2024 %>% group_by(name) %>% summarise(GP = length(name),
 
 teamParams <- naiveAlphasBetas %>% filter(name %in% team)
 
-priorPuller <- function(player_names) {
-  
-  return(naiveAlphasBetas %>% filter(name %in% player_names) %>%
-           select(GP, Betas) %>% as.numeric())
-  
-}
-
 ## Summary Stats for Prior Standard Deviations
 map(map2(teamParams$GP/2, teamParams$Betas/2, 
       ~1/sqrt(rgamma(1e+4, .x, .y))), summary)
