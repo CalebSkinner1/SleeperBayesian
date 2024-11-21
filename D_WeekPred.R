@@ -121,13 +121,13 @@ multiplePlayers <- function(players, thisWeek, lastDayPlayed = 0) {
 
 testPlayers <- c("Kevin Huerter", "Pippen", "Dort", "DeRozan", "Miles Bridges")
 multiChain <- multiplePlayers(testPlayers, 5)
-multiChain[[3]] <- cbind(multiChain[[3]], newY_3 = 0)
-postYs <- multiChain %>% map(`[`, , c("newY_2", "newY_3"))
-postYs[[3]] <- mcmc(postYs[[3]][, 1])
-rankYs <- postYs %>% map2(c(17, 23, 22, 0, 17), cbind)
-rankYs <- list(apply(rankYs[[1]], 1, rank)[3, ],
-     apply(rankYs[[2]], 1, rank)[3, ],
-     apply(rankYs[[3]], 1, rank)[2, ],
-     apply(rankYs[[4]], 1, rank)[3, ],
-     apply(rankYs[[5]], 1, rank)[3, ])
-
+postYs <- do.call(cbind, multiChain)
+postYs <- postYs[, str_detect(colnames(postYs), "newY_[^1]")]
+apply(postYs,1 , function(x) return(x >= 22)) %>% apply(1, mean) # How much often is each greater than 23
+postYs <- cbind(postYs, 17, 23, 22, 0, 17)
+rankYs <- apply(postYs, 1, rank) %>% apply(1, median)
+pippenEsts <- weekPred(5e+4, "Pippen", 5, 1, burnIn = 5e+4)
+pippenEsts[, 17:18] %>% summary ## Interesting, if he is popping off it'll be tonight
+## probably not next game. The players most likely to beat his score are DeRozan and Bridges
+## So I should probably lock. 
+## Doesn't consider that DeRozan is out
