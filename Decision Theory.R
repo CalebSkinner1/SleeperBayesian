@@ -117,91 +117,139 @@ decisions <- function(boundaries, scores){
     return()
 }
 
-single_player_results <- function(){
-  
+# makes final points tibble clean
+final_points_clean <- function(final_points_list){
+  final_points_list[[1]] %>%
+    data.table::rbindlist() %>%
+    as_tibble() %>%
+    select(name, week, game, final_points, dec_boundary) %>%
+    mutate(method = final_points_list[[2]])
 }
+
+single_player_results <- function(full_data){
+  # all combination of players/weeks
+  iterations <- full_data %>%
+    mutate(
+      # only want weeks without injury - our model isn't prepared to handle injuries
+      injury = case_when(
+        is.na(sleeper_points) ~ 1,
+        sleeper_projection == 0 ~ 1,
+        sleeper_points == 0 ~ 1,
+        .default = 0)) %>%
+    group_by(name, week) %>%
+    mutate(injured_in_week = sum(injury)) %>%
+    ungroup() %>%
+    filter(injured_in_week == 0) %>% # lose 81 observations - down to 184
+    filter(week > 2) %>% # need some data lose another 94 observations - down to 90
+    select(name, week) %>%
+    distinct() %>%
+    arrange(name, week)
   
+  players <- iterations$name
+  weeks <- iterations$week
+  comb <- str_c(players, "/", weeks)
   
-# all combination of players/weeks
-iterations <- full_data %>%
-  mutate(
-    # only want weeks without injury - our model isn't prepared to handle injuries
-    injury = case_when(
-      is.na(sleeper_points) ~ 1,
-      sleeper_projection == 0 ~ 1,
-      sleeper_points == 0 ~ 1,
-      .default = 0)) %>%
-  group_by(name, week) %>%
-  mutate(injured_in_week = sum(injury)) %>%
-  ungroup() %>%
-  filter(injured_in_week == 0) %>% # lose 81 observations - down to 184
-  filter(week > 2) %>% # need some data lose another 94 observations - down to 90
-  select(name, week) %>%
-  distinct() %>%
-  arrange(name, week)
+  # chains for each player/week iteration ~6 seconds per chain
+  chains <- map2(players, weeks, ~weekPred(3.5e+4, .x, .y, 0, burnIn = 5e+4))
+  
+  # backward induction decision boundaries for each player/week
+  bi_dec_boundaries <- map2(chains, comb, ~single_bid(.x) %>%
+                              mutate(name = str_remove(.y, "/.*"), week = str_remove(.y, ".*/") %>% as.integer()))
+  
+  # cumulative density method ~12 seconds per chain
+  cdf_dec_boundaries <- map2(chains, comb, ~cdf_boundary(.x) %>%
+                               mutate(name = str_remove(.y, "/.*"), week = str_remove(.y, ".*/") %>% as.integer()))
+  
+  # pure expected value method
+  ev_dec_boundaries <- full_data %>%
+    right_join(iterations, by = join_by(name, week)) %>%
+    group_by(name, week) %>%
+    arrange(week) %>%
+    mutate(dec_boundary = max(sleeper_projection)) %>%
+    mutate(game = row_number()) %>%
+    select(name, week, game, dec_boundary) %>%
+    relocate(dec_boundary) %>%
+    relocate(game) %>%
+    group_split()
+  
+  # Nick Di Method (never lock - ie threshold so high you never lock)
+  nd_dec_boundaries <- full_data %>%
+    right_join(iterations, by = join_by(name, week)) %>%
+    group_by(name, week) %>%
+    mutate(dec_boundary = 150) %>%
+    mutate(game = row_number()) %>%
+    select(name, week, game, dec_boundary) %>%
+    relocate(dec_boundary) %>%
+    relocate(game) %>%
+    group_split()
+  
+  # tibble of player's real scores
+  real_scores <- full_data %>%
+    right_join(iterations, by = join_by(name, week)) %>%
+    group_by(name, week) %>% 
+    mutate(
+      game = row_number()) %>%
+    select(name, week, game, sleeper_points) %>%
+    ungroup()
+  
+  # computing final points if using each method
+  bi_final_points <- list(map(bi_dec_boundaries, ~decisions(.x, real_scores)), "bi")
+  cdf_final_points <- list(map(cdf_dec_boundaries, ~decisions(.x, real_scores)), "cdf")
+  ev_final_points <- list(map(ev_dec_boundaries, ~decisions(.x, real_scores)), "ev")
+  nd_final_points <- list(map(nd_dec_boundaries, ~decisions(.x, real_scores)), "nd")
+  
+  # compute results
+  results <- map(list(bi_final_points, cdf_final_points, ev_final_points, nd_final_points), ~final_points_clean(.x)) %>%
+    data.table::rbindlist() %>%
+    as_tibble()
+  
+  return(results)
+}
 
-players <- iterations$name
-weeks <- iterations$week
-comb <- str_c(players, "/", weeks)
+# graph densities
+results %>%
+  filter(method %in% c("bi", "ev")) %>%
+  ggplot() +
+  facet_wrap(~week) +
+  geom_density(aes(x = final_points, color = method))
 
-# chains for each player/week iteration ~6 seconds per chain
-t <- Sys.time()
-chains <- map2(players, weeks, ~weekPred(3.5e+4, .x, .y, 0, burnIn = 5e+4))
-Sys.time() - t
+# means
+results %>%
+  filter(method %in% c("bi", "ev")) %>%
+  # group_by(week, method) %>%
+  group_by(method) %>%
+  summarize(
+    mean = mean(final_points),
+    game = mean(game))
 
-# backward induction decision boundaries for each player/week
-bi_dec_boundaries <- map2(chains, comb, ~single_bid(.x) %>%
-                           mutate(name = str_remove(.y, "/.*"), week = str_remove(.y, ".*/") %>% as.integer()))
+# view data
+results %>%
+  filter(method %in% c("bi", "ev")) %>%
+  pivot_wider(names_from = method, values_from = c(final_points, dec_boundary, game))
 
-# cumulative density method ~12 seconds per chain
-t <- Sys.time()
-cdf_dec_boundaries <- map2(chains, comb, ~cdf_boundary(.x) %>%
-                             mutate(name = str_remove(.y, "/.*"), week = str_remove(.y, ".*/") %>% as.integer()))
-Sys.time() - t
 
-# pure expected value method
-ev_dec_boundaries <- full_data %>%
-  right_join(iterations, by = join_by(name, week)) %>%
-  group_by(name, week) %>%
-  arrange(week) %>%
-  mutate(dec_boundary = max(sleeper_projection)) %>%
-  mutate(game = row_number()) %>%
-  select(name, week, game, dec_boundary) %>%
-  relocate(dec_boundary) %>%
-  relocate(game) %>%
-  group_split()
 
-# Nick Di Method (never lock - ie threshold so high you never lock)
-nd_dec_boundaries <- full_data %>%
-  right_join(iterations, by = join_by(name, week)) %>%
-  group_by(name, week) %>%
-  mutate(dec_boundary = 150) %>%
-  mutate(game = row_number()) %>%
-  select(name, week, game, dec_boundary) %>%
-  relocate(dec_boundary) %>%
-  relocate(game) %>%
-  group_split()
 
-# tibble of player's real scores
-real_scores <- full_data %>%
-  right_join(iterations, by = join_by(name, week)) %>%
-  group_by(name, week) %>% 
-  mutate(
-    game = row_number()) %>%
-  select(name, week, game, sleeper_points) %>%
-  ungroup()
+# is sleeper off? no
+full_data %>%
+  drop_na() %>%
+  filter(sleeper_projection != 0) %>%
+  group_by(week) %>%
+  summarize(diff = mean(sleeper_projection - sleeper_points))
 
-# computing final points if using each method
-bi_final_points <- map(bi_dec_boundaries, ~decisions(.x, real_scores))
-cdf_final_points <- map(cdf_dec_boundaries, ~decisions(.x, real_scores))
-ev_final_points <- map(ev_dec_boundaries, ~decisions(.x, real_scores))
-nd_final_points <- map(nd_dec_boundaries, ~decisions(.x, real_scores))
 
-# computing average
-bi_average_points <- map_dbl(bi_final_points, ~.x$final_points) %>% mean()
-cdf_average_points <- map_dbl(cdf_final_points, ~.x$final_points) %>% mean()
-ev_average_points <- map_dbl(ev_final_points, ~.x$final_points) %>% mean()
-nd_average_points <- map_dbl(nd_final_points, ~.x$final_points) %>% mean()
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Real Results from league
 # not really sure how we can use this, because there is massive selection bias

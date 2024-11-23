@@ -251,7 +251,6 @@ cdf_boundary <- function(mcmc_object){
   
   return(cdf)}
 
-
 # Daniel's New and Improved -----------------------------------------------
 
 # pulls priors
