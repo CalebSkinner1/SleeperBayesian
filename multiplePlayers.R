@@ -9,16 +9,31 @@ priorPuller <- function(player_names) {
   
 }
 
-weekPred <- function(n.iter, playerName, this_week, gp_week = 0,
-                     consistencyParams = priorPuller(playerName), 
+multiPuller <- function(player_names) {
+  
+  ## Allow for easy input, while also preserving order
+  playerIndices <- map_dbl(player_names, ~str_which(naiveAlphasBetas$name, .x))
+  print(playerIndices)
+  return(naiveAlphasBetas[playerIndices, c(2, 3)] %>% t)
+  ## Put Players in Columns
+  
+}
+
+multiPred <- function(n.iter, playerNames, this_week, gp_week = 0,
+                     consistencyParams = multiPuller(playerNames), 
                      hSigma = 1, theSigma = 1, burnIn = 0) {
   
   #####
   # Gather Player Data and Prepare It
   ####
   
+  ### Take potentially simplified input, and match it
+  
   ## Find Player Data
-  data <- full_data %>% filter(str_detect(name, playerName), 
+  matchedNames <- map_chr(playerNames, 
+                          ~str_extract(unique(full_data$name), .x))
+  return(matchedNames) ## Fix this
+  data <- full_data %>% filter(str_detect(name, regexNames), 
                                week <= this_week) 
   
   ## Week Safety Check
@@ -35,7 +50,7 @@ weekPred <- function(n.iter, playerName, this_week, gp_week = 0,
   
   #grabs sleeper points from full data tibble
   sleeper_points <- na.omit(data$sleeper_points) # Removes all references to this_week
-  gamesPlayed <- length(sleeper_points)
+  gamesPlayed <- length(sleeper_points) ## This has to be changed to account for different players
   playerDF <- gamesPlayed - 1
   
   #grabs projections from data tibble
@@ -68,6 +83,17 @@ weekPred <- function(n.iter, playerName, this_week, gp_week = 0,
   newY <- matrix(1, nrow = n.iter + burnIn + 1, ncol = length(sleepEsts))
   
   ## Loop 
+  
+  ## Get player data into columns to have it calculate things properly
+  ## Second for loop will likely start after calculating hSigma 
+  ## Vectorization will literally do god's work
+  ## I beleive hSigma will literally require us to change the structure of priorMean
+  ## Ideally have input be a list, then squish it down to a vector that presevers order
+  ## Then vectorization can take the wheel
+  ## Next steps will be by player will proceed how it is now
+  ## alpha and beta will depend on the column
+  ## gamesPlayed can become a vector, 
+  ## All in all, the tricky part will having the correct structures to represent the players. 
   
   for (j in 2:(n.iter + burnIn + 1)) {
     
