@@ -167,6 +167,8 @@ ev_dec_boundaries <- full_data %>%
   mutate(dec_boundary = max(sleeper_projection)) %>%
   mutate(game = row_number()) %>%
   select(name, week, game, dec_boundary) %>%
+  relocate(dec_boundary) %>%
+  relocate(game) %>%
   group_split()
 
 # Nick Di Method (never lock - ie threshold so high you never lock)
@@ -176,6 +178,8 @@ nd_dec_boundaries <- full_data %>%
   mutate(dec_boundary = 150) %>%
   mutate(game = row_number()) %>%
   select(name, week, game, dec_boundary) %>%
+  relocate(dec_boundary) %>%
+  relocate(game) %>%
   group_split()
 
 # tibble of player's real scores
@@ -200,7 +204,12 @@ ev_average_points <- map_dbl(ev_final_points, ~.x$final_points) %>% mean()
 nd_average_points <- map_dbl(nd_final_points, ~.x$final_points) %>% mean()
 
 # Real Results from league
-league_final_points <- list(29, )
-
-
+# not really sure how we can use this, because there is massive selection bias
+tibble(name = c("Alperen Sengun", "Alperen Sengun", "Bobby Portis", "Collin Sexton", "Collin Sexton", "DeMar DeRozan", "Deandre Ayton",
+                "Draymond Green", "Draymond Green", "Jalen Suggs", "Jalen Suggs", "Jordan Poole", "Jordan Poole", "Kevin Huerter",
+                "Keyonte George", "Kyrie Irving", "Luguentz Dort", "Luguentz Dort", "Luguentz Dort", "Scotty Pippen Jr.", "Scotty Pippen Jr.", "Shai Gilgeous-Alexander",
+                "Shai Gilgeous-Alexander", "Shai Gilgeous-Alexander", "Victor Wembanyama"),
+       week = c(3, 4, 3, 3, 4, 3, 3, 3, 4, 3, 4, 3, 4, 4, 4, 3, 3, 4, 5, 3, 4, 3, 4, 5, 3),
+       real_score = c(36.5, 39, "", "", "", 25.5, 25, 15, 29.5, 4, "", 30, 35, "", "", 32.5, 25, 20.5, "", "", 23, 19, 51.5, 29, 52)) %>% group_by(name, week) %>%
+  group_split()
 
