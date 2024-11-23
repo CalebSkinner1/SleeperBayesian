@@ -194,7 +194,7 @@ week_pred <- function(n.iter, data, this_week, gp_week, alpha, beta,
 }
 
 
-# probability decision boundary
+# probability to exceed
 prob_decision <- function(mcmc_object, week_data = NULL, best_score = NULL, remaining_games = NULL){
   # enter best_score for specific integer or week_data for function to directly compute
   
@@ -224,6 +224,31 @@ prob_decision <- function(mcmc_object, week_data = NULL, best_score = NULL, rema
     cdf <- tibble(
       score = best_score,
       exceed_prob = best_score %>% map_dbl(~mean(df$max_score > .x)))
+  return(cdf)}
+
+# probability decision boundary
+cdf_boundary <- function(mcmc_object){
+  # enter best_score for specific integer or week_data for function to directly compute
+
+  df <- mcmc_object %>% as_tibble() %>%
+    select(contains("newY"))
+  
+  total_games <- df %>% ncol()
+  games_it <- seq(1, total_games - 1, by=1)
+  
+  # compute median max remaining score
+  cdf <- map(games_it, ~df %>%
+        select(tail(names(.), total_games - .x)) %>%
+        rowwise() %>%
+        mutate(max_score = max(c_across(everything()))) %>%
+        ungroup() %>%
+        group_by() %>%
+        summarize(dec_boundary = median(max_score)) %>%
+        mutate(game = .x) %>%
+        relocate(game)) %>%
+    data.table::rbindlist() %>%
+    as_tibble()
+  
   return(cdf)}
 
 

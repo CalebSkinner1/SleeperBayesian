@@ -2,6 +2,7 @@
 
 # load functions
 source("Gibbs Sampler Functions.R")
+source("Dec_Theory Functions.R")
 
 # load data
 source("Data Manipulation.R")
@@ -34,10 +35,9 @@ shai_week %>% prob_decision(best_score = x, remaining_games = 1, week_data = NUL
 
 # rough decision boundary using cdf of max method
 shai_week %>%
-  prob_decision(best_score = x, remaining_games = 3, week_data = NULL) %>%
+  prob_decision(best_score = x, remaining_games = 1, week_data = NULL) %>%
   filter(exceed_prob < .5) %>%
   slice(1)
-
 
 # Dort --------------------------------------------------------------------
 dort_full <- full_data %>% filter(str_detect(name, "Dort"))
@@ -50,39 +50,6 @@ dort_week <- week_pred(1e+4, data = dort_full,
                        burnIn = 5e+4)
 
 # Backwards-Induction Decision Theory -------------------------------------
-single_bid <- function(mcmc_object){
-  df <- mcmc_object %>% as_tibble() %>%
-    select(contains("newY"))
-  
-  # number of games to be estimated
-  games <- ncol(df)
-  
-  # initialize tibble to store data
-  dec_boundary <- tibble()
-  
-  # mean posterior for last game
-  mean <- df[[games]] %>% mean()
-  for(i in games:2){
-    # add mean value to decision boundary
-    dec_boundary <- tibble(game = i - 1, dec_boundary = mean) %>%
-      bind_rows(dec_boundary)
-    
-    # compute T (expected score after game i-1)
-    # this code is way to complex because I can't think of a simpler way to do it
-    new_T <- df[i-1] %>%
-      rename_with(~paste0("y"), contains("Y")) %>%
-      rowwise() %>%
-      # user keeps score if greater than mean for next game
-      mutate(t = max(y, mean)) %>%
-      select(t) %>% pull()
-    
-    # compute new mean
-    mean <- new_T %>% mean()
-  }
-  return(dec_boundary)
-  
-}
-
 
 # for comparison
 week_pred(1e+4, data = shai_full,
@@ -106,402 +73,134 @@ multiChain <- multiplePlayers(testPlayers, 5)
 Sys.time() - t
 
 # this works for one spot
-multi_bid_one <- function(mcmc_object, data, this_week, test_players){
-  # make chain malleable
-  malleable_chain <- map(mcmc_object, ~.x %>% as_tibble() %>% select(contains("newY")) %>% as.mcmc())
-  
-  # player's order in mcmc_object
-  #this needs to be testPlayers not test_players! (it needs to order the players in the big boy chain)
-  player_order <- testPlayers %>% as_tibble() %>% mutate(order = row_number()) %>% rename(name = value) 
-  
-  df <- full_data %>% filter(week == this_week, name %in% test_players) %>%
-    # need to identify player order to grab from mcmc_object
-    left_join(player_order, by = join_by(name))
-  
-  # last day in week
-  last_day <- max(df$date)
-  
-  dec_boundaries <- tibble()
-  
-  # Have to do last day first, because it is slightly different
-  
-  # grab players playing on last day
-  players_last_day <- df %>% filter(date == last_day) %>%
-    select(order) %>% pull()
-  
-  # chains for last day
-  values_last_day <- malleable_chain[players_last_day]
-  # compute means for each chain
-  mean <- map_dbl(values_last_day, ~.x %>% as.data.frame() %>% select(last_col()) %>% pull() %>% mean)
-  
-  # remove these values so chain can continue to grab the last column
-  malleable_chain[players_last_day] <- map(values_last_day, ~.x %>% as_tibble() %>% select(-last_col()) %>% as.mcmc())
-  
-  # grab largest value (this guy is starting)
-  ET_1 <- max(mean)
-  
-  # add to tibble
-  dec_boundaries <- tibble(day = last_day - 1, dec_boundary = ET_1) %>%
-    bind_rows(dec_boundaries)
-  
-  # for loop across each day (7 days in a week, minus weird last day, so 5 decisions)
-  for(i in 5:1){
-    # grab players playing on (i+1)th day
-    players_day_ahead <- df %>% filter(date == last_day + i - 6) %>%
-      select(order) %>% pull()
-    
-    # if no players this day
-    if(length(players_day_ahead) == 0){ next}
-    
-    # chains for (i+1)th day
-    values_day_ahead <- malleable_chain[players_day_ahead]
-    
-    # probability that will exceed decision boundary
-    P <- map_dbl(values_day_ahead, ~mean(.x %>% as.data.frame() %>%
-                                           select(last_col()) %>% pull()>ET_2)) %>%
-      as_tibble() %>%
-      mutate(player = players_day_ahead) %>%
-      arrange(desc(value))
-    # starters
-    S1 <- P %>% slice(1) %>% select(player) %>% pull()
-    
-    # compute T1 (expected total score after date)
-    T1 <- malleable_chain[S1] %>% as.data.frame() %>%
-      select(last_col()) %>% rowwise() %>%
-      rename_with(~paste0("y"), starts_with("newY")) %>%
-      mutate(max = max(y, ET_1)) %>%
-      select(max) %>% pull()
-    
-    # compute mean (expected total score if date is unknown)
-    ET_1 <- mean(T1)
-    
-    # remove these values so chain can continue to grab the last column
-    malleable_chain[players_day_ahead] <- map(values_day_ahead, ~.x %>% as_tibble() %>% select(-last_col()) %>% as.mcmc())
-    
-    # add to tibble
-    dec_boundaries <- tibble(day = last_day + i - 7, dec_boundary = ET_1) %>%
-      bind_rows(dec_boundaries)
-  }
-  
-  return(dec_boundaries)
-  
-}
-
 multiChain %>% multi_bid_one(full_data, this_week = 5, testPlayers)
 
-# thus far, this only works for two spots
-multi_bid_two <- function(mcmc_object, data, this_week, test_players){
-  # first boundary
-  
-  # make chain malleable
-  malleable_chain <- map(mcmc_object, ~.x %>% as_tibble() %>% select(contains("newY")) %>% as.mcmc())
-  
-  # player's order in mcmc_object
-  player_order <- test_players %>% as_tibble() %>% mutate(order = row_number()) %>% rename(name = value)
-  
-  df <- full_data %>% filter(week == this_week, name %in% test_players) %>%
-    # need to identify player order to grab from multiChain
-    left_join(player_order, by = join_by(name))
-  
-  # last day in week
-  last_day <- max(df$date)
-  
-  dec_boundary1 <- tibble()
-  
-  # Have to do last day first, because it is slightly different
-  
-  # grab players playing on last day
-  players_last_day <- df %>% filter(date == last_day) %>%
-    select(order) %>% pull()
-  
-  # chains for last day
-  values_last_day <- malleable_chain[players_last_day]
-  # compute means for each chain
-  mean <- map_dbl(values_last_day, ~.x %>% as.data.frame() %>% select(last_col()) %>% pull() %>% mean)
-  
-  # remove these values so chain can continue to grab the last column
-  malleable_chain[players_last_day] <- map(values_last_day, ~.x %>% as_tibble() %>% select(-last_col()) %>% as.mcmc())
-  
-  # grab largest value (this guy is starting)
-  ET_1 <- max(mean)
-  # grab second largest value (this guy is also starting)
-  
-  if(length(mean) == 1){
-    ET_2 <- 0 # in case one player played in last day
-  } else{
-    ET_2 <- sort(mean,partial=length(mean)-1)[length(mean)-1]
-  }
-  
-  # add to tibble
-  dec_boundary1 <- tibble(day = last_day - 1, dec_boundary = ET_2, locked_players = "NONE") %>%
-    bind_rows(dec_boundary1)
-  
-  # for loop across each day (7 days in a week, minus weird last day, so 5 decisions)
-  for(i in 5:1){
-    # grab players playing on (i+1)th day
-    players_day_ahead <- df %>% filter(date == last_day + i - 6) %>%
-      select(order) %>% pull()
-    
-    # if no players this day
-    if(length(players_day_ahead) == 0){ next}
-    
-    # chains for (i+1)th day
-    values_day_ahead <- malleable_chain[players_day_ahead]
-    
-    # probability that will exceed decision boundary
-    P <- map_dbl(values_day_ahead, ~mean(.x %>% as.data.frame() %>%
-                                select(last_col()) %>% pull()>ET_2)) %>%
-      as_tibble() %>%
-      mutate(player = players_day_ahead) %>%
-      arrange(desc(value))
-    # starters
-    S1 <- P %>% slice(1) %>% select(player) %>% pull()
-    
-    if(length(values_day_ahead) == 1){
-      S_2 <- 0 # in case one player played in last day
-    } else{
-      S2 <- P %>% slice(2) %>% select(player) %>% pull()
-    }
-    
-    # compute T1
-    T1 <- malleable_chain[S1] %>% as.data.frame() %>%
-      select(last_col()) %>% rowwise() %>%
-      rename_with(~paste0("y"), starts_with("newY")) %>%
-      mutate(max = max(y, ET_2)) %>%
-      select(max) %>% pull()
-    
-    # compute T2
-    if(length(values_day_ahead) == 1){
-      T2 <- ET_1 # in case one player played in last day
-    } else{
-      T2 <- malleable_chain[S2] %>% as.data.frame() %>%
-        select(last_col()) %>% rowwise() %>%
-        rename_with(~paste0("y"), starts_with("newY")) %>%
-        mutate(max = max(y, ET_1)) %>%
-        select(max) %>% pull()
-    }
-    
-    # order
-    Ts <- tibble(T1 = T1, T2 = T2) %>%
-      rowwise() %>%
-      mutate(
-        T_1 = max(T1, T2),
-        T_2 = min(T1, T2)) %>%
-      group_by() %>%
-      summarize(
-        ET_1 = mean(T_1),
-        ET_2 = mean(T_2))
-    ET_1 <- Ts$ET_1
-    ET_2 <- Ts$ET_2
-    
-    # remove these values so chain can continue to grab the last column
-    malleable_chain[players_day_ahead] <- map(values_day_ahead, ~.x %>% as_tibble() %>% select(-last_col()) %>% as.mcmc())
-    
-    # add to tibble
-    dec_boundary1 <- tibble(day = last_day + i - 7, dec_boundary = ET_2, locked_players = "NONE") %>%
-      bind_rows(dec_boundary1)
-  }
-  
-  # second boundary
-  # make players a list
-  players <- test_players %>% as.list()
-  
-  # create list of all possible combinations of n-1 players (if one player is locked, these are the possible combinations of n-1 players left)
-  tp <- combn(players, length(players) - 1) %>% as.data.frame() %>% as.list()
-  
-  # players that have been locked
-  missing <- map(tp, ~setdiff(players, .x)) %>% as.data.frame() %>% as.list()
-  
-  # iterate through and compute the second decision boundary for each possibility of a locked player
-  dec_boundaries <- map(tp, ~multi_bid_one(mcmc_object, full_data, this_week, .x)) %>%
-    map2(missing, ~.x %>% mutate(locked_players = .y)) %>%
-    data.table::rbindlist() %>%
-    as_tibble() %>%
-    bind_rows(dec_boundary1) %>%
-    arrange(desc(day)) %>%
-    relocate(locked_players, .before = dec_boundary)
-  
-  return(dec_boundaries)
-  
-}
-
+# two spots
 multiChain %>% multi_bid_two(full_data, this_week = 5, testPlayers)
 
 multiChain %>% multi_bid_two(full_data, this_week = 5, testPlayers[-5])
 
-multi_bid_three <- function(mcmc_object, data, this_week, test_players){
-  # first boundary
+# three spots
+t <- Sys.time()
+multiChain %>% multi_bid_three(full_data, this_week = 5, testPlayers)
+Sys.time() - t
+
+# Results -----------------------------------------------------------------
+
+# Single Player Results
+# the goal of this is to look through each week for each player and see how the decision boundary rules fair
+# I will compare this to the naive boundary and no-lock boundary (always take last score)
+
+# function that moves through decision boundaries and players score to compute what the user
+# would have scored
+decisions <- function(boundaries, scores){
+  df <- boundaries %>%
+    left_join(scores, by = join_by(name, week, game)) %>%
+    rowwise() %>%
+    mutate(accept = sleeper_points > dec_boundary) %>%
+    ungroup()
   
-  # make chain malleable
-  malleable_chain <- map(mcmc_object, ~.x %>% as_tibble() %>% select(contains("newY")) %>% as.mcmc())
-  
-  # player's order in mcmc_object
-  player_order <- test_players %>% as_tibble() %>% mutate(order = row_number()) %>% rename(name = value)
-  
-  df <- full_data %>% filter(week == this_week, name %in% test_players) %>%
-    # need to identify player order to grab from multiChain
-    left_join(player_order, by = join_by(name))
-  
-  # last day in week
-  last_day <- max(df$date)
-  
-  dec_boundary1 <- tibble()
-  
-  # Have to do last day first, because it is slightly different
-  
-  # grab players playing on last day
-  players_last_day <- df %>% filter(date == last_day) %>%
-    select(order) %>% pull()
-  
-  # chains for last day
-  values_last_day <- malleable_chain[players_last_day]
-  # compute means for each chain
-  mean <- map_dbl(values_last_day, ~.x %>% as.data.frame() %>% select(last_col()) %>% pull() %>% mean)
-  
-  # remove these values so chain can continue to grab the last column
-  malleable_chain[players_last_day] <- map(values_last_day, ~.x %>% as_tibble() %>% select(-last_col()) %>% as.mcmc())
-  
-  # grab largest value (this guy is starting)
-  ET_1 <- max(mean)
-  
-  # grab second largest value (this guy is also starting)
-  if(length(mean) == 1){
-    ET_2 <- 0 # in case one player played in last day
-  } else{
-    ET_2 <- sort(mean,partial=length(mean)-1)[length(mean)-1]
-  }
-  
-  # grab third largest value (this guy is also starting)
-  if(length(mean) < 3){
-    ET_3 <- 0 # in case less than three players played in last day
-  } else{
-    ET_3 <- sort(mean,partial=length(mean)-2)[length(mean)-2]
-  }
-  
-  
-  # add to tibble
-  dec_boundary1 <- tibble(day = last_day - 1, dec_boundary = ET_3, lock1 = "NONE", lock2 = "NONE") %>%
-    bind_rows(dec_boundary1)
-  
-  # for loop across each day (7 days in a week, minus weird last day, so 5 decisions)
-  for(i in 5:1){
-    # grab players playing on (i+1)th day
-    players_day_ahead <- df %>% filter(date == last_day + i - 6) %>%
-      select(order) %>% pull()
-    
-    # if no players this day
-    if(length(players_day_ahead) == 0){ next}
-    
-    # chains for (i+1)th day
-    values_day_ahead <- malleable_chain[players_day_ahead]
-    
-    # probability that will exceed decision boundary
-    P <- map_dbl(values_day_ahead, ~mean(.x %>% as.data.frame() %>%
-                                           select(last_col()) %>% pull()>ET_2)) %>%
-      as_tibble() %>%
-      mutate(player = players_day_ahead) %>%
-      arrange(desc(value))
-    # starters
-    S1 <- P %>% slice(1) %>% select(player) %>% pull()
-    
-    if(length(values_day_ahead) == 1){
-      S_2 <- 0 # in case one player played in last day
-    } else{
-      S2 <- P %>% slice(2) %>% select(player) %>% pull()
+  # if never meets dec boundary
+  if(sum(df$accept) == 0){
+    final_game <- df$game %>% tail(1)
+  }else{
+    # if does exceed boundary
+    final_game <- df %>%
+      filter(accept == TRUE) %>%
+      slice(1) %>%
+      select(game) %>%
+      pull()
     }
-    
-    if(length(values_day_ahead) < 3){
-      S_3 <- 0 # in case one player played in last day
-    } else{
-      S3 <- P %>% slice(3) %>% select(player) %>% pull()
-    }
-    
-    # compute T1
-    T1 <- malleable_chain[S1] %>% as.data.frame() %>%
-      select(last_col()) %>% rowwise() %>%
-      rename_with(~paste0("y"), starts_with("newY")) %>%
-      mutate(max = max(y, ET_3)) %>%
-      select(max) %>% pull()
-    
-    # compute T2
-    if(length(values_day_ahead) == 1){
-      T2 <- ET_2 # in case one player played in last day
-    } else{
-      T2 <- malleable_chain[S2] %>% as.data.frame() %>%
-        select(last_col()) %>% rowwise() %>%
-        rename_with(~paste0("y"), starts_with("newY")) %>%
-        mutate(max = max(y, ET_2)) %>%
-        select(max) %>% pull()
-    }
-    
-    # compute T3
-    if(length(values_day_ahead) < 3){
-      T3 <- ET_1 # in case less than three players played in last day
-    } else{
-      T3 <- malleable_chain[S3] %>% as.data.frame() %>%
-        select(last_col()) %>% rowwise() %>%
-        rename_with(~paste0("y"), starts_with("newY")) %>%
-        mutate(max = max(y, ET_1)) %>%
-        select(max) %>% pull()
-    }
-    
-    # order the Ts
-    Ts <- tibble(T1 = T1, T2 = T2, T3 = T3) %>%
-      rowwise() %>%
-      mutate(
-        T_1 = max(T1, T2, T3),
-        T_2 = Rfast::nth(c(T1, T2, T3), 2, descending = TRUE),
-        T_3 = min(T1, T2, T3)) %>%
-      group_by() %>%
-      summarize(
-        ET_1 = mean(T_1),
-        ET_2 = mean(T_2),
-        ET_3 = mean(T_3))
-    
-    ET_1 <- Ts$ET_1
-    ET_2 <- Ts$ET_2
-    ET_3 <- Ts$ET_3
-    
-    # remove these values so chain can continue to grab the last column
-    malleable_chain[players_day_ahead] <- map(values_day_ahead, ~.x %>% as_tibble() %>% select(-last_col()) %>% as.mcmc())
-    
-    # add to tibble
-    dec_boundary1 <- tibble(day = last_day + i - 7, dec_boundary = ET_3, lock1 = "NONE", lock2 = "NONE") %>%
-      bind_rows(dec_boundary1)
-  }
-  
-  # next boundary
-  # make players a list
-  players <- test_players
-  
-  # create list of all possible combinations of n-1 players (if one player is locked, these are the possible combinations of n-1 players left)
-  tp <- combn(players, length(players) - 1) %>% as.data.frame() %>% as.list()
-  
-  # players that have been locked
-  missing <- map(tp, ~setdiff(players, .x)) %>% as.data.frame() %>% as.list()
-  
-  # iterate through and compute the second decision boundary for each possibility of a locked player
-  dec_boundaries <- map(tp, ~multi_bid_two(mcmc_object, full_data, this_week, .x)) %>%
-    map2(players, ~.x %>% mutate(lock2 = .y)) %>%
-    data.table::rbindlist() %>%
-    as_tibble() %>%
-    rename(lock1 = "locked_players") %>%
-    bind_rows(dec_boundary1) %>%
-    arrange(desc(day)) %>%
-    relocate(lock1, .before = dec_boundary) %>%
-    relocate(lock2, .before = dec_boundary) %>%
-    distinct()
-  
-  return(dec_boundaries)
-  
+  df %>%
+    filter(game == final_game) %>%
+    rename("final_points" = sleeper_points) %>%
+    return()
 }
 
+single_player_results <- function(){
+  
+}
+  
+  
+# all combination of players/weeks
+iterations <- full_data %>%
+  mutate(
+    # only want weeks without injury - our model isn't prepared to handle injuries
+    injury = case_when(
+      is.na(sleeper_points) ~ 1,
+      sleeper_projection == 0 ~ 1,
+      sleeper_points == 0 ~ 1,
+      .default = 0)) %>%
+  group_by(name, week) %>%
+  mutate(injured_in_week = sum(injury)) %>%
+  ungroup() %>%
+  filter(injured_in_week == 0) %>% # lose 81 observations - down to 184
+  filter(week > 2) %>% # need some data lose another 94 observations - down to 90
+  select(name, week) %>%
+  distinct() %>%
+  arrange(name, week)
 
-multiChain %>% multi_bid_three(full_data, this_week = 5, testPlayers)
+players <- iterations$name
+weeks <- iterations$week
+comb <- str_c(players, "/", weeks)
 
+# chains for each player/week iteration ~6 seconds per chain
+t <- Sys.time()
+chains <- map2(players, weeks, ~weekPred(3.5e+4, .x, .y, 0, burnIn = 5e+4))
+Sys.time() - t
 
+# backward induction decision boundaries for each player/week
+bi_dec_boundaries <- map2(chains, comb, ~single_bid(.x) %>%
+                           mutate(name = str_remove(.y, "/.*"), week = str_remove(.y, ".*/") %>% as.integer()))
 
+# cumulative density method ~12 seconds per chain
+t <- Sys.time()
+cdf_dec_boundaries <- map2(chains, comb, ~cdf_boundary(.x) %>%
+                             mutate(name = str_remove(.y, "/.*"), week = str_remove(.y, ".*/") %>% as.integer()))
+Sys.time() - t
 
+# pure expected value method
+ev_dec_boundaries <- full_data %>%
+  right_join(iterations, by = join_by(name, week)) %>%
+  group_by(name, week) %>%
+  arrange(week) %>%
+  mutate(dec_boundary = max(sleeper_projection)) %>%
+  mutate(game = row_number()) %>%
+  select(name, week, game, dec_boundary) %>%
+  group_split()
+
+# Nick Di Method (never lock - ie threshold so high you never lock)
+nd_dec_boundaries <- full_data %>%
+  right_join(iterations, by = join_by(name, week)) %>%
+  group_by(name, week) %>%
+  mutate(dec_boundary = 150) %>%
+  mutate(game = row_number()) %>%
+  select(name, week, game, dec_boundary) %>%
+  group_split()
+
+# tibble of player's real scores
+real_scores <- full_data %>%
+  right_join(iterations, by = join_by(name, week)) %>%
+  group_by(name, week) %>% 
+  mutate(
+    game = row_number()) %>%
+  select(name, week, game, sleeper_points) %>%
+  ungroup()
+
+# computing final points if using each method
+bi_final_points <- map(bi_dec_boundaries, ~decisions(.x, real_scores))
+cdf_final_points <- map(cdf_dec_boundaries, ~decisions(.x, real_scores))
+ev_final_points <- map(ev_dec_boundaries, ~decisions(.x, real_scores))
+nd_final_points <- map(nd_dec_boundaries, ~decisions(.x, real_scores))
+
+# computing average
+bi_average_points <- map_dbl(bi_final_points, ~.x$final_points) %>% mean()
+cdf_average_points <- map_dbl(cdf_final_points, ~.x$final_points) %>% mean()
+ev_average_points <- map_dbl(ev_final_points, ~.x$final_points) %>% mean()
+nd_average_points <- map_dbl(nd_final_points, ~.x$final_points) %>% mean()
+
+# Real Results from league
+league_final_points <- list(29, )
 
 
 
