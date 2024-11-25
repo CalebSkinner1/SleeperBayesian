@@ -230,7 +230,7 @@ prob_decision <- function(mcmc_object, week_data = NULL, best_score = NULL, rema
 cdf_boundary <- function(mcmc_object){
   # enter best_score for specific integer or week_data for function to directly compute
   
-  df <- chains[[1]] %>% as_tibble() %>%
+  df <- mcmc_object %>% as_tibble() %>%
     select(contains("newY"))
   
   total_games <- df %>% ncol()
