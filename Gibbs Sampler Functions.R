@@ -229,8 +229,8 @@ prob_decision <- function(mcmc_object, week_data = NULL, best_score = NULL, rema
 # probability decision boundary
 cdf_boundary <- function(mcmc_object){
   # enter best_score for specific integer or week_data for function to directly compute
-
-  df <- mcmc_object %>% as_tibble() %>%
+  
+  df <- chains[[1]] %>% as_tibble() %>%
     select(contains("newY"))
   
   total_games <- df %>% ncol()
@@ -238,14 +238,14 @@ cdf_boundary <- function(mcmc_object){
   
   # compute median max remaining score
   cdf <- map(games_it, ~df %>%
-        select(tail(names(.), total_games - .x)) %>%
-        rowwise() %>%
-        mutate(max_score = max(c_across(everything()))) %>%
-        ungroup() %>%
-        group_by() %>%
-        summarize(dec_boundary = median(max_score)) %>%
-        mutate(game = .x) %>%
-        relocate(game)) %>%
+               select(tail(names(.), total_games - .x)) %>%
+               as.matrix() %>% 
+               matrixStats::rowMaxs() %>%
+               median() %>%
+               as_tibble() %>%
+               rename(dec_boundary = value) %>%
+               mutate(game = .x) %>%
+               relocate(game)) %>%
     data.table::rbindlist() %>%
     as_tibble()
   
