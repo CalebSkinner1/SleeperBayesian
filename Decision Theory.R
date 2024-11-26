@@ -156,7 +156,7 @@ single_player_results <- function(full_data){
   bi_dec_boundaries <- map2(chains, comb, ~single_bid(.x) %>%
                               mutate(name = str_remove(.y, "/.*"), week = str_remove(.y, ".*/") %>% as.integer()))
   
-  # cumulative density method ~12 seconds per chain
+  # cumulative density method ~much faster than before :)
   cdf_dec_boundaries <- map2(chains, comb, ~cdf_boundary(.x) %>%
                                mutate(name = str_remove(.y, "/.*"), week = str_remove(.y, ".*/") %>% as.integer()))
   
@@ -206,6 +206,10 @@ single_player_results <- function(full_data){
   return(results)
 }
 
+t <- Sys.time()
+results <- single_player_results(full_data)
+Sys.time() - t
+
 # graph densities
 results %>%
   filter(method %in% c("bi", "ev")) %>%
@@ -216,9 +220,10 @@ results %>%
 # means
 results %>%
   filter(method %in% c("bi", "ev")) %>%
-  # group_by(week, method) %>%
-  group_by(method) %>%
+  group_by(week, method) %>%
+  # group_by(method) %>%
   summarize(
+    dec_boundary = mean(dec_boundary),
     mean = mean(final_points),
     game = mean(game))
 
@@ -226,9 +231,6 @@ results %>%
 results %>%
   filter(method %in% c("bi", "ev")) %>%
   pivot_wider(names_from = method, values_from = c(final_points, dec_boundary, game))
-
-
-
 
 # is sleeper off? no
 full_data %>%
