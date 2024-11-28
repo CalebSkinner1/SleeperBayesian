@@ -219,7 +219,7 @@ results %>%
 
 # means
 results %>%
-  filter(method %in% c("bi", "ev")) %>%
+  # filter(method %in% c("bi", "ev")) %>%
   group_by(week, method) %>%
   # group_by(method) %>%
   summarize(
@@ -231,6 +231,28 @@ results %>%
 results %>%
   filter(method %in% c("bi", "ev")) %>%
   pivot_wider(names_from = method, values_from = c(final_points, dec_boundary, game))
+
+# proportion of max
+prop_max <- full_data %>% right_join(results %>% select(name, week) %>% distinct(), by = join_by(name, week), relationship = "many-to-many") %>%
+  group_by(name, week) %>%
+  summarize(max_score = max(sleeper_points)) %>%
+  right_join(results, by = join_by(name, week)) %>%
+  ungroup() %>%
+  rowwise() %>%
+  mutate(prop_of_max = final_points/max_score) %>%
+  ungroup()
+
+
+# density of prop of max
+prop_max %>% ggplot() +
+  # facet_wrap(~week) +
+  geom_density(aes(x = prop_of_max, color = method))
+
+prop_max %>%
+  group_by(method) %>%
+  summarize(
+    correct = mean(prop_of_max == 1)
+  )
 
 # is sleeper off? no
 full_data %>%
@@ -255,11 +277,11 @@ full_data %>%
 
 # Real Results from league
 # not really sure how we can use this, because there is massive selection bias
-tibble(name = c("Alperen Sengun", "Alperen Sengun", "Bobby Portis", "Collin Sexton", "Collin Sexton", "DeMar DeRozan", "Deandre Ayton",
-                "Draymond Green", "Draymond Green", "Jalen Suggs", "Jalen Suggs", "Jordan Poole", "Jordan Poole", "Kevin Huerter",
-                "Keyonte George", "Kyrie Irving", "Luguentz Dort", "Luguentz Dort", "Luguentz Dort", "Scotty Pippen Jr.", "Scotty Pippen Jr.", "Shai Gilgeous-Alexander",
-                "Shai Gilgeous-Alexander", "Shai Gilgeous-Alexander", "Victor Wembanyama"),
-       week = c(3, 4, 3, 3, 4, 3, 3, 3, 4, 3, 4, 3, 4, 4, 4, 3, 3, 4, 5, 3, 4, 3, 4, 5, 3),
-       real_score = c(36.5, 39, "", "", "", 25.5, 25, 15, 29.5, 4, "", 30, 35, "", "", 32.5, 25, 20.5, "", "", 23, 19, 51.5, 29, 52)) %>% group_by(name, week) %>%
-  group_split()
+# tibble(name = c("Alperen Sengun", "Alperen Sengun", "Bobby Portis", "Collin Sexton", "Collin Sexton", "DeMar DeRozan", "Deandre Ayton",
+#                 "Draymond Green", "Draymond Green", "Jalen Suggs", "Jalen Suggs", "Jordan Poole", "Jordan Poole", "Kevin Huerter",
+#                 "Keyonte George", "Kyrie Irving", "Luguentz Dort", "Luguentz Dort", "Luguentz Dort", "Scotty Pippen Jr.", "Scotty Pippen Jr.", "Shai Gilgeous-Alexander",
+#                 "Shai Gilgeous-Alexander", "Shai Gilgeous-Alexander", "Victor Wembanyama"),
+#        week = c(3, 4, 3, 3, 4, 3, 3, 3, 4, 3, 4, 3, 4, 4, 4, 3, 3, 4, 5, 3, 4, 3, 4, 5, 3),
+#        real_score = c(36.5, 39, "", "", "", 25.5, 25, 15, 29.5, 4, "", 30, 35, "", "", 32.5, 25, 20.5, "", "", 23, 19, 51.5, 29, 52)) %>% group_by(name, week) %>%
+#   group_split()
 
