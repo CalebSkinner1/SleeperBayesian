@@ -44,13 +44,16 @@ single_bid_expand <- function(n.iter, playerName, this_week, gp_week = 0,
 }
 
 # this works for one spot
-multi_bid_one <- function(mcmc_object, data, this_week, test_players){
+multi_bid_one <- function(mcmc_object, data, this_week, chain_players, test_players){
+  # function needs to know the players in the chain, and the order that they are in (chain_players)
+  # It also needs to know the players that we want tested (test_players)
+  
   # make chain malleable
   malleable_chain <- map(mcmc_object, ~.x %>% as_tibble() %>% select(contains("newY")) %>% as.mcmc())
   
   # player's order in mcmc_object
-  #this needs to be testPlayers not test_players! (it needs to order the players in the big boy chain)
-  player_order <- testPlayers %>% as_tibble() %>% mutate(order = row_number()) %>% rename(name = value) 
+  # this needs to be chain_players not test_players! (it needs to order the players in the big boy chain)
+  player_order <- chain_players %>% as_tibble() %>% mutate(order = row_number()) %>% rename(name = value) 
   
   df <- full_data %>% filter(week == this_week, name %in% test_players) %>%
     # need to identify player order to grab from mcmc_object
@@ -126,9 +129,8 @@ multi_bid_one <- function(mcmc_object, data, this_week, test_players){
 }
 
 # two spots
-multi_bid_two <- function(mcmc_object, data, this_week, test_players){
-  # first boundary
-  
+multi_bid_two <- function(mcmc_object, data, this_week, chain_players, test_players){
+
   # make chain malleable
   malleable_chain <- map(mcmc_object, ~.x %>% as_tibble() %>% select(contains("newY")) %>% as.mcmc())
   
@@ -249,7 +251,7 @@ multi_bid_two <- function(mcmc_object, data, this_week, test_players){
   missing <- map(tp, ~setdiff(players, .x)) %>% as.data.frame() %>% as.list()
   
   # iterate through and compute the second decision boundary for each possibility of a locked player
-  dec_boundaries <- map(tp, ~multi_bid_one(mcmc_object, full_data, this_week, .x)) %>%
+  dec_boundaries <- map(tp, ~multi_bid_one(mcmc_object, full_data, this_week, chain_players, .x)) %>%
     map2(missing, ~.x %>% mutate(locked_players = .y)) %>%
     data.table::rbindlist() %>%
     as_tibble() %>%
@@ -262,7 +264,7 @@ multi_bid_two <- function(mcmc_object, data, this_week, test_players){
 }
 
 # three spots
-multi_bid_three <- function(mcmc_object, data, this_week, test_players){
+multi_bid_three <- function(mcmc_object, data, this_week,chain_players, test_players){
   # first boundary
   
   # make chain malleable
@@ -414,7 +416,7 @@ multi_bid_three <- function(mcmc_object, data, this_week, test_players){
   missing <- map(tp, ~setdiff(players, .x)) %>% as.data.frame() %>% as.list()
   
   # iterate through and compute the second decision boundary for each possibility of a locked player
-  dec_boundaries <- map(tp, ~multi_bid_two(mcmc_object, full_data, this_week, .x)) %>%
+  dec_boundaries <- map(tp, ~multi_bid_two(mcmc_object, full_data, this_week, chain_players, .x)) %>%
     map2(players, ~.x %>% mutate(lock1 = .y)) %>%
     data.table::rbindlist() %>%
     as_tibble() %>%
