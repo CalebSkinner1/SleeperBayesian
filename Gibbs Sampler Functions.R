@@ -251,6 +251,66 @@ cdf_boundary <- function(mcmc_object){
   
   return(cdf)}
 
+# combine two dataframes and keep the one with the higher mean
+combine_dfs <- function(df1, df2){
+  duplicates <- list(match(colnames(df1), colnames(df2)), seq(1:ncol(df1)))
+  cols <- map2(duplicates[[1]], duplicates[[2]], ~{
+    if(!is.na(.x)){
+      list(.y, .x, if_else(mean(df1[,.y] %>% pull()) > mean(df2[,.x] %>% pull()), 1, 2))
+    }})
+  for(i in length(cols):1){
+    if(!is.null(cols[[i]])){
+      if(cols[[i]][[3]] == 1){
+        df2 <- df2[-cols[[i]][[2]]]}
+      else{
+        df1 <- df1[-cols[[i]][[1]]]}
+    }}
+  df <- bind_cols(df1, df2) %>% return()
+}
+
+# probability decision boundary
+cdf_boundary2 <- function(mcmc_object, chain_players, test_players) {
+  # enter best_score for specific integer or week_data for function to directly compute
+  
+  # make chain malleable
+  malleable_chain <- map(mcmc_object, ~.x %>% as_tibble() %>% select(contains("newY")) %>% as.mcmc())
+  
+  # player's order in mcmc_object
+  # this needs to be chain_players not test_players! (it needs to order the players in the big boy chain)
+  player_order <- chain_players %>% as_tibble() %>% mutate(order = row_number()) %>% rename(name = value) %>%
+    filter(name %in% test_players) %>% select(order) %>% pull()
+  
+  df1 <- malleable_chain[[player_order[[1]]]] %>% as_tibble() %>%
+    select(contains("newY"))
+  
+  df2 <- malleable_chain[[player_order[[2]]]] %>% as_tibble() %>%
+    select(contains("newY"))
+  
+  df2 <- df2 %>% select(-newY_2)
+  
+  df1 %>% summarize(across(everything(), ~mean(.x)))
+  df2 %>% summarize(across(everything(), ~mean(.x)))
+  
+  df <- combine_dfs(df1, df2)
+  
+  total_games <- df %>% ncol()
+  games_it <- seq(1, total_games - 1, by=1)
+  
+  # compute median max remaining score
+  cdf <- map(games_it, ~df %>%
+               select(tail(names(.), total_games - .x)) %>%
+               as.matrix() %>% 
+               matrixStats::rowMaxs() %>%
+               median() %>%
+               as_tibble() %>%
+               rename(dec_boundary = value) %>%
+               mutate(game = .x) %>%
+               relocate(game)) %>%
+    data.table::rbindlist() %>%
+    as_tibble()
+  
+  return(cdf)}
+
 # Daniel's New and Improved -----------------------------------------------
 
 # pulls priors
