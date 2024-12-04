@@ -1,5 +1,5 @@
 library("hoopR")
-library("tidyverse")
+library("tidyverse"); theme_set(theme_minimal())
 library("janitor")
 
 # sleeper point computation
@@ -201,4 +201,31 @@ teamParams <- naiveAlphasBetas %>% filter(name %in% team)
 
 ## Delete everything
 rm(projections_list, partial_data, projections)
-  
+
+
+# Quick Graphs for Results ------------------------------------------------
+
+# quick_players <- c("LeBron James", "Jalen Williams", "Jayson Tatum", "Victor Wembanyama", "Shai Gilgeous-Alexander", "Nikola Jokic")
+# 
+# # 2024 player densities
+# df_2024 %>%
+#   mutate(season = 2024) %>% 
+#   # bind_rows(df_2025 %>% mutate(season = 2025)) %>%
+#   filter(name %in% quick_players, sleeper_points != 0) %>%
+#   # group_by(season) %>%
+#   ggplot() +
+#   facet_wrap(~name, strip.position = "bottom") +
+#   geom_density(aes(x = sleeper_points), color = "cadetblue4") +
+#   labs(x = "Fantasy Points", y = "", title = "Figure 1: 2024 Player Densities")
+# 
+# # sleeper projections vs realities
+# 
+# full_data %>%
+#   # filter(name %in% quick_players) %>%
+#   filter(sleeper_points != 0, !is.na(sleeper_projection)) %>%
+#   ggplot() +
+#   geom_jitter(aes(x = sleeper_projection, y = sleeper_points), color = "indianred3", size = 1, width = .1, height = .1) +
+#   labs(x = "Sleeper Projections", y = "Fantasy Points", title = "Figure 2: Projections vs Scores")
+
+
+               
