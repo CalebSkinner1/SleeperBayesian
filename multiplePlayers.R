@@ -170,7 +170,7 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
                      ~sum((sleeperPoints[[.x]] - thetaList[[.x]][j - 1, ])^2))
     
     ## Hierarchical Variance
-    hSigma[j] <- 1/rgamma(1, sum(gamesPlayed)/2, sum(hierarchicalSS)/2)
+    hSigma[j] <- 1/rgamma(1, (sum(gamesPlayed))/2 + 1, (sum(hierarchicalSS) )/2 + 1)
     
     ## Jumping into player level stuff
     
@@ -213,8 +213,8 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
 multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
           "Saturday")[[1]]
 
-smallRun <- multiPred(5e+3, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
-                      "Monday", burnIn = 2.5e+3)
+smallRun <- multiPred(1.5e+4, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
+                      "Monday", burnIn = 0)
 map(smallRun, summary)
 map(smallRun, traceplot)
 map(smallRun, effectiveSize)
