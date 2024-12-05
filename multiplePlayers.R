@@ -141,7 +141,7 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
   ## Initializing Results Matrix
   ## thetas as a list of matrices
   
-  thetaList <- map(seq_along(matchedNames), ~matrix(20, 
+  thetaList <- map(seq_along(matchedNames), ~matrix(tail(priorMean[[.x]], 1), 
                                        nrow = n.iter + burnIn + 1, 
                                        ncol = gamesPlayed[.x], 
                                        byrow = T))
@@ -152,10 +152,11 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
   ## Player Consistency
   sigmaMat <- matrix(1, nrow = n.iter + burnIn + 1, ncol = length(matchedNames))
   
-  ## Hierarchical Variance
-  hSigma <- rep(1, n.iter + burnIn + 1)
   ## A Global Variable
   nameSequence <- seq_along(matchedNames)
+  
+  ## Hierarchical Variance
+  hSigma <- rep(1, n.iter + burnIn + 1)
   
   ## Loop
   
@@ -209,12 +210,14 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
   return(resList)
   
 }
-multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
+multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
           "Saturday")[[1]]
 
-smallRun <- multiPred(5000, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
-                      "Monday", burnIn = 1e+4)
+smallRun <- multiPred(5e+3, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
+                      "Monday", burnIn = 2.5e+3)
 map(smallRun, summary)
+map(smallRun, traceplot)
+map(smallRun, effectiveSize)
 
 smallRun2 <-  multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
                        "Saturday", burnIn = 1000)
