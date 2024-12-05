@@ -286,8 +286,6 @@ cdf_boundary2 <- function(mcmc_object, chain_players, test_players) {
   df2 <- malleable_chain[[player_order[[2]]]] %>% as_tibble() %>%
     select(contains("newY"))
   
-  df2 <- df2 %>% select(-newY_2)
-  
   df1 %>% summarize(across(everything(), ~mean(.x)))
   df2 %>% summarize(across(everything(), ~mean(.x)))
   

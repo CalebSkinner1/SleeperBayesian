@@ -85,10 +85,17 @@ multi_bid_one <- function(mcmc_object, data, this_week, chain_players, test_play
   dec_boundaries <- tibble(day = last_day - 1, dec_boundary = ET_1) %>%
     bind_rows(dec_boundaries)
   
+  first_day <- min(df$date)
+  
+  for_length <- interval(first_day, last_day) %/% days(1) - 1
+  if(for_length == 0){
+    return(dec_boundaries)
+  }
+  
   # for loop across each day (7 days in a week, minus weird last day, so 5 decisions)
-  for(i in 5:1){
+  for(i in for_length:1){
     # grab players playing on (i+1)th day
-    players_day_ahead <- df %>% filter(date == last_day + i - 6) %>%
+    players_day_ahead <- df %>% filter(date == last_day + i - 1 - for_length) %>%
       select(order) %>% pull()
     
     # if no players this day
@@ -108,8 +115,9 @@ multi_bid_one <- function(mcmc_object, data, this_week, chain_players, test_play
     
     # compute T1 (expected total score after date)
     T1 <- malleable_chain[S1] %>% as.data.frame() %>%
-      select(last_col()) %>% rowwise() %>%
-      rename_with(~paste0("y"), starts_with("newY")) %>%
+      select(last_col()) %>%
+      rename_with(~paste0("y"), contains("newY")) %>%
+      rowwise() %>%
       mutate(max = max(y, ET_1)) %>%
       select(max) %>% pull()
     
@@ -204,7 +212,7 @@ multi_bid_two <- function(mcmc_object, data, this_week, chain_players, test_play
     # compute T1
     T1 <- malleable_chain[S1] %>% as.data.frame() %>%
       select(last_col()) %>% rowwise() %>%
-      rename_with(~paste0("y"), starts_with("newY")) %>%
+      rename_with(~paste0("y"), contains("newY")) %>%
       mutate(max = max(y, ET_2)) %>%
       select(max) %>% pull()
     
@@ -214,7 +222,7 @@ multi_bid_two <- function(mcmc_object, data, this_week, chain_players, test_play
     } else{
       T2 <- malleable_chain[S2] %>% as.data.frame() %>%
         select(last_col()) %>% rowwise() %>%
-        rename_with(~paste0("y"), starts_with("newY")) %>%
+        rename_with(~paste0("y"), contains("newY")) %>%
         mutate(max = max(y, ET_1)) %>%
         select(max) %>% pull()
     }
@@ -354,7 +362,7 @@ multi_bid_three <- function(mcmc_object, data, this_week,chain_players, test_pla
     # compute T1
     T1 <- malleable_chain[S1] %>% as.data.frame() %>%
       select(last_col()) %>% rowwise() %>%
-      rename_with(~paste0("y"), starts_with("newY")) %>%
+      rename_with(~paste0("y"), contains("newY")) %>%
       mutate(max = max(y, ET_3)) %>%
       select(max) %>% pull()
     
@@ -364,7 +372,7 @@ multi_bid_three <- function(mcmc_object, data, this_week,chain_players, test_pla
     } else{
       T2 <- malleable_chain[S2] %>% as.data.frame() %>%
         select(last_col()) %>% rowwise() %>%
-        rename_with(~paste0("y"), starts_with("newY")) %>%
+        rename_with(~paste0("y"), contains("newY")) %>%
         mutate(max = max(y, ET_2)) %>%
         select(max) %>% pull()
     }
@@ -375,7 +383,7 @@ multi_bid_three <- function(mcmc_object, data, this_week,chain_players, test_pla
     } else{
       T3 <- malleable_chain[S3] %>% as.data.frame() %>%
         select(last_col()) %>% rowwise() %>%
-        rename_with(~paste0("y"), starts_with("newY")) %>%
+        rename_with(~paste0("y"), contains("newY")) %>%
         mutate(max = max(y, ET_1)) %>%
         select(max) %>% pull()
     }
