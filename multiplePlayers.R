@@ -213,8 +213,8 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
 multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
           "Saturday")[[1]]
 
-smallRun <- multiPred(1.5e+4, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
-                      "Monday", burnIn = 0)
+smallRun <- multiPred(5e+3, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
+                      "Monday", burnIn = 1.5e+4)
 map(smallRun, summary)
 map(smallRun, traceplot)
 map(smallRun, effectiveSize)
