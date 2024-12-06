@@ -1,0 +1,42 @@
+## Model Inputs
+# playerCount - Number of Players
+# gamesPlayed - Vector of number of games each player played
+# sleeperProjections - Matrix of Sleeper Projections
+# alphas - Prior vector of scale parameters for Consistnecy
+# betas - Prior vector of rate parameters for Consistnecy
+# priorScale - Scale Parameter for Cauchy distribution
+
+model {
+
+for (i in 1:playerCount) {
+
+  for (j in 1:gamesPlayed[i]) {
+  
+    ## Likelihood 
+  
+    y[i, j] ~ dnorm(theta[i, j], sigmaPrecision[i])
+    
+    ## Hierarchical Component Definition
+    theta[i, j] <- sleeperProjections[i, j] + xi * eta[i]
+  
+  }
+  # End gamesPLayed for loop
+  
+  ## Consistency Parameter
+  Consistency[i] = pow(sigmaPrecision[i], -1)
+  sigmaPrecision[i] ~ dgamma(alphas[i], betas[i])
+  
+  ## Hierarchical Variance Hyperparamters
+  eta[i] ~ dnorm(0, tauEta)
+  # xi will be defined outside of the loop
+
+}
+# End player for loop
+
+## Parameter Exapnded Hyperparameters
+xi ~ dnorm(0, tauXi)
+tauEta ~ dgamma(1/2, 1/2)
+tauXi <- pow(priorScale, -2)
+hierarchicalVariance <- abs(xi)/sqrt(tauEta)
+
+}

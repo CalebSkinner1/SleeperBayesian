@@ -1,7 +1,6 @@
-## Have data saved globally
 library(tidyverse)
 library(coda)
-
+library(rjags)
 
 ## Functions. Some only work inside the big function
 multiPuller <- function(player_names) {
@@ -69,17 +68,15 @@ dayFinder <- function(player_name, curWeek, dotw, data) {
   playerIndex <- which(data$name == player_name & data$week == curWeek & 
                          fantasyWD(data$date) >= dotw)
   return(as.character(factor(fantasyWD(data$date[playerIndex]), levels = 1:7, 
-         labels = c("Monday", "Tuesday", "Wednesday", "Thursday", 
-                    "Friday", "Saturday", "Sunday"))))
+                             labels = c("Monday", "Tuesday", "Wednesday", "Thursday", 
+                                        "Friday", "Saturday", "Sunday"))))
   
 }
 
-multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesday", "Wednesday", 
+jagsPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesday", "Wednesday", 
                                                                "Thursday", "Friday", "Saturday", "Sunday"),
-                     consistencyParams = multiPuller(playerNames), 
-                     burnIn = 0) {
-  
-  # hSigma and all normalSigmas start at 1
+                     priorScale = 25, consistencyParams = multiPuller(playerNames),
+                      burnIn = 0) {
   
   #####
   # Gather Player Data and Prepare It
@@ -102,7 +99,7 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
   data$sleeper_points[currentWeek] <- NA
   ### Check which players have NAs
   matchedNames <- data %>% filter(week == this_week, 
-                             fantasyWD(date) >= dotw) %>%
+                                  fantasyWD(date) >= dotw) %>%
     pull(name) %>% factor(levels = matchedNames) %>% droplevels %>% levels
   
   #####
@@ -139,90 +136,71 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
   # sleeperPoints is a list of vectors
   # sleepEsts and priorMean are a list of vectors
   
-  ## Initializing Results Matrix
-  ## thetas as a list of matrices
-  
-  thetaList <- map(seq_along(matchedNames), ~matrix(tail(priorMean[[.x]], 1), 
-                                       nrow = n.iter + burnIn + 1, 
-                                       ncol = gamesPlayed[.x], 
-                                       byrow = T))
-  newY <- map(seq_along(matchedNames), ~matrix(1, 
-                                               nrow = n.iter + burnIn + 1, 
-                                               ncol = length(sleepEsts[[.x]])))
-  
-  ## Player Consistency
-  sigmaMat <- matrix(1, nrow = n.iter + burnIn + 1, ncol = length(matchedNames))
-  
   ## A Global Variable
-  nameSequence <- seq_along(matchedNames)
+  nameCount <- length(matchedNames)
   
-  ## Hierarchical Variance
-  hSigma <- rep(1, n.iter + burnIn + 1)
+  ## Make sleeperPoints and sleeperProjections are matrices
+  mostGamesPlayed <- max(gamesPlayed)
+  pointsMat <- do.call(rbind, sleeperPoints)
+  priorMat <- do.call(rbind, priorMean)
   
-  ## Loop
+  ## JAGS
   
-  for (j in 2:(n.iter + burnIn + 1)) {
+  theCauchyModel <- jags.model(file = "pexModel.txt", 
+                               data = list(y = pointsMat, 
+                                           playerCount = nameCount,
+                                           gamesPlayed = gamesPlayed,
+                                           sleeperProjections = priorMat, 
+                                           alphas = alphas, 
+                                           betas = betas,
+                                           priorScale = priorScale))
+  update(theCauchyModel, burnIn)
+  finalSamples <- coda.samples(theCauchyModel, 
+                               c("theta", "Consistency", "hierarchicalVariance"), 
+                               n.iter)[[1]]
+  
+  ## Prettying it Up
+  thetaInds <- map(1:nameCount, ~str_which(colnames(finalSamples), 
+                                          paste0("theta\\[", .x)))
+  thetaList <- map(thetaInds, ~finalSamples[, .x])
+  sigmaMat <- finalSamples[, 1:nameCount]
+  hSigma <- finalSamples[, nameCount + 1]
+  
+  ## Posterior Predictive Samples
+  newY <- map(seq_along(matchedNames), 
+                       ~matrix(1, nrow = n.iter, 
+                                  ncol = length(sleepEsts[[.x]])))
+  for (j in 1:n.iter) {
     
-    ## Get all sums of squares of previous iteration in a vector
-    
-    hierarchicalSS <- map_dbl(nameSequence, 
-                 ~sum((thetaList[[.x]][j - 1, ] - priorMean[[.x]])^2))
-    allSS <- map_dbl(nameSequence, 
-                     ~sum((sleeperPoints[[.x]] - thetaList[[.x]][j - 1, ])^2))
-    
-    ## Hierarchical Variance
-    hSigma[j] <- 1/rgamma(1, (sum(gamesPlayed))/2 + 1, (sum(hierarchicalSS) )/2 + 1)
-    
-    ## Jumping into player level stuff
-    
-    for (i in nameSequence) {
+    for (i in 1:nameCount) {
       
-      sigmaMat[j, i] <- 1/rgamma(1, gamesPlayed[i]/2 + alphas[i], 
-                                 allSS[i]/2 + betas[i])
-      currentPrecision <- (1/sigmaMat[j, i] + 1/hSigma[j])^(-1)
-      currentMean <- (priorMean[[i]]/hSigma[j] + sleeperPoints[[i]]/sigmaMat[j, i]) * currentPrecision
-      thetaList[[i]][j, ] <- mvtnorm::rmvnorm(1, currentMean, diag(currentPrecision, gamesPlayed[i]))
-      
-      ## Posterior Predictive Sampling
-      newThetas <- mvtnorm::rmvnorm(1, sleepEsts[[i]], diag(hSigma[j], totalEsts[i]))
-      newY[[i]][j, ] <- mvtnorm::rmvnorm(1, newThetas, diag(sigmaMat[j, i], totalEsts[i]))
+      newThetas <- mvtnorm::rmvnorm(1, sleepEsts[[i]], diag(hSigma[j], totalEsts[i])) # Sample means
+      newY[[i]][j, ] <- mvtnorm::rmvnorm(1, newThetas, diag(sigmaMat[j, i], totalEsts[i])) # Sample New Observations
       
     }
-    # End player for
     
   }
-  # End observation for
   
   ## Prepare Results
   
-  resList <- map(nameSequence, ~cbind(thetaList[[.x]], 
-                                                 newY[[.x]],
-                                                 sigmaMat[, .x], 
-                                                 hSigma))
-  for (k in nameSequence) {
+  resList <- map(1:nameCount, ~cbind(thetaList[[.x]], 
+                                      newY[[.x]],
+                                      sigmaMat[, .x], 
+                                      hSigma))
+  for (k in 1:nameCount) {
     
     colnames(resList[[k]]) <- c(paste0("theta_", 1:gamesPlayed[k]),
                                 paste0("newY_", gameDays[[k]]), 
                                 "Consistency", "Hierarchical Variance")
     
   }
-  resList <- map(resList, mcmcPrep, -1:(-1 * burnIn - 1))
+  resList <- map(resList, mcmc)
   names(resList) <- matchedNames
   return(resList)
   
 }
 
-multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
-          "Saturday")[[1]]
-
-smallRun <- multiPred(1.5e+4, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
+jagsRun <- jagsPred(1e+4, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
                       "Monday", burnIn = 5e+3)
-map(smallRun, summary)
-map(smallRun, traceplot)
-map(smallRun, effectiveSize)
-
-smallRun2 <-  multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
-                       "Saturday", burnIn = 1000)
-
-weekPred(5000, "Kyrie Irving", 2, burnIn = 1000) %>% summary
->>>>>>> Stashed changes
+map(jagsRun, summary)
+map(jagsRun, traceplot)
