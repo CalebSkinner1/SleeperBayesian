@@ -2,6 +2,7 @@
 library(tidyverse)
 library(coda)
 
+
 ## Functions. Some only work inside the big function
 multiPuller <- function(player_names) {
   
@@ -210,16 +211,16 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
   return(resList)
   
 }
-multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
-          "Saturday")[[1]]
-
-smallRun <- multiPred(5e+3, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
-                      "Monday", burnIn = 1.5e+4)
-map(smallRun, summary)
-map(smallRun, traceplot)
-map(smallRun, effectiveSize)
-
-smallRun2 <-  multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
-                       "Saturday", burnIn = 1000)
-
-weekPred(5000, "Kyrie Irving", 2, burnIn = 1000) %>% summary
+# multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
+#           "Saturday")[[1]]
+# 
+# smallRun <- multiPred(5e+3, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
+#                       "Monday", burnIn = 1.5e+4)
+# map(smallRun, summary)
+# map(smallRun, traceplot)
+# map(smallRun, effectiveSize)
+# 
+# smallRun2 <-  multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
+#                        "Saturday", burnIn = 1000)
+# 
+# weekPred(5000, "Kyrie Irving", 2, burnIn = 1000) %>% summary
