@@ -76,8 +76,17 @@ dayFinder <- function(player_name, curWeek, dotw, data) {
 
 multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesday", "Wednesday", 
                                                                "Thursday", "Friday", "Saturday", "Sunday"),
-                     consistencyParams = multiPuller(playerNames), 
-                     burnIn = 0) {
+                      burnIn = 0, consistencyParams = multiPuller(playerNames)) {
+  
+  ## Inputs
+  ### n.iter, number of posterior draws that will be obtained.
+  ### playerNames, players we would like to do inference on
+  ### this_week, the week the estimation will be performed on
+  ### dotw, Tells us what is the latest day of the week which games have not been played.
+  ###       for example, setting it to Monday means that no games have been played in the weak
+  ###       if we set it to Friday, the parameters will be estimated assuming games have been played from Monday through Thursday
+  ### burnIn, Number of samples discarded 
+  ### consitencyParams, Prior Values for Scale and Rate of Consistency Parameters
   
   # hSigma and all normalSigmas start at 1
   
