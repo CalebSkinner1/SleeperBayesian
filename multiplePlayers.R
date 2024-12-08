@@ -216,9 +216,6 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
   
 }
 
-multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 2, 
-          "Saturday")[[1]]
-
 smallRun <- multiPred(1.5e+4, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pippen", "Shai", "Wemb"), this_week = 5, 
                       "Monday", burnIn = 5e+3)
 map(smallRun, summary)
@@ -229,4 +226,3 @@ smallRun2 <-  multiPred(1, playerNames = c("Kyrie Irving", "DeMar DeRozan", "Pip
                        "Saturday", burnIn = 1000)
 
 weekPred(5000, "Kyrie Irving", 2, burnIn = 1000) %>% summary
->>>>>>> Stashed changes
