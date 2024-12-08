@@ -278,6 +278,24 @@ real_scores %>% left_join(bi_dec_boundaries[[8]], by = join_by(name, week, game)
 #   facet_wrap(~week) +
 #   geom_smooth(aes(x = game, y = sleeper_points))
 
+# compare decisions of bi and ev
+results %>% filter(method == "bi") %>% rename(bi_final_points = final_points,
+                                              bi_dec_boundary = dec_boundary,
+                                              bi_game = game) %>%
+  select(-method) %>% 
+  left_join(
+    results %>% filter(method == "ev") %>% rename(ev_final_points = final_points,
+                                                  ev_dec_boundary = dec_boundary,
+                                                  ev_game = game) %>%
+      select(-method),
+    by = join_by(name, week)) %>%
+  # group_by(week) %>%
+  group_by() %>% 
+  summarize(
+    same = sum(bi_game == ev_game),
+    diff = sum(bi_game != ev_game)
+  )
+
 # view data
 results %>%
   filter(method %in% c("bi", "ev")) %>%
@@ -347,8 +365,8 @@ mult_final_points_clean <- function(final_points_list){
     mutate(method = final_points_list[[2]])
 }
 
-# finished!
-mult_player_results <- function(full_data){
+# This function computes player results for multiple players and a single spot
+mult_player_results <- function(full_data, n_pool_players){
   # all combination of players/weeks
   iterations <- full_data %>%
     mutate(
@@ -373,8 +391,8 @@ mult_player_results <- function(full_data){
     group_by(week) %>%
     reframe(names = list(name))
   
-  # all combinations of 2 players (for each week)
-  test_players <- map2(mult$names, mult$week, ~list(combn(.x, 2, simplify = FALSE), .y))
+  # all combinations of n_pool_players (for each week)
+  test_players <- map2(mult$names, mult$week, ~list(combn(.x, n_pool_players, simplify = FALSE), .y))
   
   # create chain_players (this is all players in chain)
   # w/o week
@@ -394,7 +412,7 @@ mult_player_results <- function(full_data){
   # chains <- map(chain_players, ~map2(.x[[1]], .x[[2]], ~weekPred(3.5e+4, .x, .y, 0, burnIn = 5e+4)))
   
   # new method
-  nested_chains <- map(player_weeks, ~multiPred(5e3, iterations %>% select(name) %>% distinct(), .x, "Monday", burnIn = 2.5e3))
+  nested_chains <- map(player_weeks, ~multiPred(5e3, iterations %>% select(name) %>% distinct() %>% pull(), .x, "Monday", burnIn = 2.5e3))
   
   chains <- map2(nested_chains, player_list, ~{
     keep <- match(.y, names(.x))
@@ -494,12 +512,16 @@ mult_player_results <- function(full_data){
   return(multi_results)
 }
 
-# for example only
-# example_data <- full_data %>% filter(name %in% c("Deandre Ayton", "LaMelo Ball", "Bobby Portis", "Brook Lopez", "Jalen Brunson", "LeBron James",
-#                                                  "Jayson Tatum", "Derrick White"))
+# for example only (takes less time)
+example_data <- full_data %>% filter(name %in% c("Deandre Ayton", "LaMelo Ball", "Bobby Portis", "Brook Lopez", "Jalen Brunson", "LeBron James",
+                                                 "Jayson Tatum", "Derrick White", "Shai Gilgeous Alexander", "Jalen Williams")| name %in% team)
 
 t <- Sys.time()
-multi_results <- mult_player_results(full_data)
+multi_results <- mult_player_results(full_data, 2)
+Sys.time() - t
+
+t <- Sys.time()
+m5_results <- mult_player_results(example_data, 5)
 Sys.time() - t
 
 # graph densities
@@ -529,6 +551,25 @@ multi_results %>%
   fmt_number(decimals = 2) %>%
   tab_header(title = "Table 2: Two Players for One Spot")
 
+m5_results %>%
+  # filter(method %in% c("bi", "ev")) %>%
+  # group_by(week, method) %>%
+  group_by(method) %>%
+  summarize(
+    dec_boundary = mean(dec_boundary),
+    "final points" = mean(final_points),
+    game = mean(game)) %>%
+  select(method, "final points") %>%
+  mutate(method = recode(method,
+                         "bi" = "Backwards Induction",
+                         "cdf" = "CDF",
+                         "ev" = "Expected Value",
+                         "nd" = "Nick Di")) %>%
+  gt() %>%
+  gt_theme_538() %>%
+  fmt_number(decimals = 2) %>%
+  tab_header(title = "Table 5: Five Players for One Spot")
+
 # graph densities
 multi_results %>%
   filter(method %in% c("bi", "ev")) %>%
@@ -538,4 +579,8 @@ multi_results %>%
   geom_density(aes(x = final_points, color = method)) +
   labs(x = "Final Points", y = "", title = "Figure 4: Two Players for One Spot")
 
+# which players are consistent
+map(chains[[3]], ~mean(.x %>% as_tibble() %>% select("Consistency") %>% pull())) %>% as_tibble() %>%
+  pivot_longer(cols = everything(), names_to = "player", values_to = "consistency") %>%
+  arrange(desc(consistency)) %>% view()
 
