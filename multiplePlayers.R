@@ -2,6 +2,7 @@
 library(tidyverse)
 library(coda)
 
+load("NBAData.rdata")
 
 ## Functions. Some only work inside the big function
 multiPuller <- function(player_names) {
