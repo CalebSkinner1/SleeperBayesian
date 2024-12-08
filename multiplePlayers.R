@@ -177,10 +177,14 @@ multiPred <- function(n.iter, playerNames, this_week, dotw = c("Monday", "Tuesda
     
     for (i in nameSequence) {
       
+      ## Consistency Samples
       sigmaMat[j, i] <- 1/rgamma(1, gamesPlayed[i]/2 + alphas[i], 
                                  allSS[i]/2 + betas[i])
+      
+      ## Form Mean Parameter for Thetas
       currentPrecision <- (1/sigmaMat[j, i] + 1/hSigma[j])^(-1)
       currentMean <- (priorMean[[i]]/hSigma[j] + sleeperPoints[[i]]/sigmaMat[j, i]) * currentPrecision
+      ## Sample Thetas
       thetaList[[i]][j, ] <- mvtnorm::rmvnorm(1, currentMean, diag(currentPrecision, gamesPlayed[i]))
       
       ## Posterior Predictive Sampling
