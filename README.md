@@ -24,3 +24,6 @@ This file contains the Gibbs Sampler that was used to take posterior draws, alon
 ## Reports
 
 This file stores our proposal and final report.
+
+## Data Recognition
+We acquire 2023-2024 and 2024-2025 NBA boxscore statistics from ESPN using the hoopR package API package. We also acquire Sleeper's fantasy projections.
