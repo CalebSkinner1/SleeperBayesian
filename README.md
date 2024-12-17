@@ -4,7 +4,7 @@ Hello, this document was written to allow you to find exactly what you need and 
 
 ## Data Cleaning
 
-Files in this folder acquire NBA boxscore data from hoopr and clean data into the proper format.
+Files in this folder acquire NBA boxscore data from hoopR and clean data into the proper format.
 
 ## Decision Stuffs
 
