@@ -39,8 +39,31 @@ latentFC <- function(zValue, yValue, probVec, meanVec, sdVec) {
 latentFC(1, wembyData$sleeper_points, c(0.01, rep(1/3, 3)), c(0, 25, 30, 35), c(0.001, 5, 5, 5))
 sapply(1:4, latentFC, wembyData$sleeper_points, c(0.01, rep(1/3, 3)), c(0, 25, 30, 35), c(0.001, 5, 5, 5))
 
+zCounter <- function(latentVector, clusterNumber) {
+  
+  ## Make this more flexible
+  resVector <- map_dbl(1:clusterNumber, ~max(1, sum(latentVector == .x)))
+  return(resVector)
+  
+}
+
+zMeans <- function(y, latentVector, clusterNumber) {
+  
+  resVector <- map_dbl(1:clusterNumber, ~ifelse(length(y[latentVector == 0])))
+  return(resVector)
+  
+}
+
+zSS <- function(y, latentVector, clusterNumber) {
+  
+  allMeans <- zMeans(y, latentVector, clusterNumber)
+  resVector <- map_dbl(1:clusterNumber, ~sum((y[latentVector == .x] - allMeans[.x])^2))
+  return(resVector)
+  
+}
+
 playerMixture <- function(n.iter, data, meanStarts, sdStarts, 
-                          probStarts, hyperProbs, burnIn = 0) {
+                          probStarts, hyperProbs, alphas, betas, burnIn = 0) {
   
   # sdStarts is actually variance, I like that name better
   ## Some Checks
@@ -48,15 +71,17 @@ playerMixture <- function(n.iter, data, meanStarts, sdStarts,
   gamesPlayed <- nrow(data) # data is a data frame
   if (clusterSize != length(meanStarts) | 
       clusterSize != length(sdStarts) | 
-      clusterSize != length(hyperProbs) ) stop("\n There must be enough prior parameters for each cluster!")
+      clusterSize != length(hyperProbs) |
+      clusterSize != length(alphas) |
+      clusterSize != length(betas)) stop("\n There must be enough prior parameters for each cluster!")
   
-  if (sum(probStarts) != 1) stop("\n Prior probabilties must sum to 1!")
+  if (!all.equal(sum(probStarts), 1)) stop("\n Prior probabilties must sum to 1!")
   
   ## Construct Results Matrix
   muMat <- matrix(meanStarts, nrow = n.iter + burnIn + 1, ncol = clusterSize, byrow = T)
   sdVals <- matrix(sdStarts, nrow = n.iter + burnIn + 1, ncol = clusterSize, byrow = T)
   probVals <- matrix(probStarts, nrow = n.iter + burnIn + 1, ncol = clusterSize, byrow = T)
-  zMat <- matrix(1, nrow = n.iter + burnIn + 1, ncol = clusterSize)
+  zMat <- matrix(1, nrow = n.iter + burnIn + 1, ncol = gamesPlayed)
   
   ## Do an array for the other one, per game. 
   
@@ -66,7 +91,7 @@ playerMixture <- function(n.iter, data, meanStarts, sdStarts,
     
     for (j in seq_along(data$sleeper_points)) {
       
-      sampleWeights <- latentFC(1:4, data$sleeper_point[j], 
+      sampleWeights <- latentFC(1:clusterSize, data$sleeper_points[j], 
                                 probVals[i - 1, ], muMat[i - 1, ],
                                 sdVals[i - 1, ])
       zMat[i, j] <- sample.int(clusterSize, 1, prob = sampleWeights)
@@ -74,24 +99,39 @@ playerMixture <- function(n.iter, data, meanStarts, sdStarts,
     }
     
     ## Simulate Probabilities
-    latentSampleSizes <- as.numeric(table(zMat[i, ]))
+    latentSampleSizes <- zCounter(zMat[i, ], clusterSize)
     probVals[i, ] <- LaplacesDemon::rdirichlet(1, hyperProbs + 
                                                  latentSampleSizes)
     
     ## Simulate Each Individual Distribution
     
     ### Mean
-    latentSampleMeans <- as.numeric(tapply(data$sleeper_point,
-                                zMat[i, ], mean))
+    latentSampleMeans <- zMeans(data$sleeper_points, zMat[i, ], 
+                                clusterSize)
+    latentSampleMeans[is.nan(latentSampleMeans)] <- 0
     muMat[i, ] <- LaplacesDemon::rmvn(1, mu = latentSampleMeans, 
-                        Sigma = diag(sdStarts[i - 1, ]/latentSampleSizes))
+                        Sigma = diag(sdVals[i - 1, ]/latentSampleSizes))
     
     ### Variance
-    sdVals[i, ]
-    
+    latentSS <- zSS(data$sleeper_points, zMat[i, ],
+                    clusterSize)
+    sdVals[i, ] <- 1/map_dbl(1:clusterSize, ~rgamma(1, latentSampleSizes[.x]/2 + alphas[.x], 
+                                   latentSS[.x]/2 + betas[.x]))
     
   }
   
+  resMat <- cbind(muMat, sdVals, probVals, zMat)
+  colnames(resMat) <- c(paste0("mu_", 1:clusterSize),
+                        paste0("sdVal", 1:clusterSize),
+                        paste0("pi_", 1:clusterSize), 
+                        paste0("z_", 1:gamesPlayed))
+  return(mcmc(resMat[-1:(-1 * burnIn - 1), ]))
+  
+  
 }
 
-playerMixture(10, wembyData, c(0, 25, 30, 35))
+testSamples <- playerMixture(2000, wembyData, meanStarts = c(0, 18, 30, 50),
+              sdStarts = c(0.001, 5, 5, 5), probStarts = c(0.01, 1/9, 0.5, 1 - (0.01 + 1/9 + 0.5)), 
+              hyperProbs = c(1, 1, 1, 1), alphas = c(500, 10, 15, 15), 
+              betas = c(0.0001, 1, 1, 1), burnIn = 3000)
+
