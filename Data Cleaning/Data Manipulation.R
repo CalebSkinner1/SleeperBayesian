@@ -31,7 +31,7 @@ clean_box_score <- function(df){
 
 # write to csv for ease
 # write_csv(df_2024, "2024_stats.R")
-df_2024 <- read_csv("2024_stats.R")
+df_2024 <- read_csv("Data Cleaning/2024_stats.R")
 
 # select nine players ie Daniel's team for funsies
 team <- c("Kyrie Irving", "Jalen Suggs", "Miles Bridges", "DeMar DeRozan", "Alperen Sengun",

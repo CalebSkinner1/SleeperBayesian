@@ -1,3 +1,9 @@
+# libraries
+library("tidyverse")
+
+# read in data
+df_2024 <- read_csv("Data Cleaning/2024_stats.R")
+
 wembyData <- df_2024 %>% filter(name == "Victor Wembanyama")
 
 # Fully Conditional Dist for Latent Variable
@@ -134,4 +140,7 @@ testSamples <- playerMixture(2000, wembyData, meanStarts = c(0, 18, 30, 50),
               sdStarts = c(0.001, 5, 5, 5), probStarts = c(0.01, 1/9, 0.5, 1 - (0.01 + 1/9 + 0.5)), 
               hyperProbs = c(1, 1, 1, 1), alphas = c(500, 10, 15, 15), 
               betas = c(0.0001, 1, 1, 1), burnIn = 3000)
+
+traceplot(testSamples)
+mean(testSamples)
 
