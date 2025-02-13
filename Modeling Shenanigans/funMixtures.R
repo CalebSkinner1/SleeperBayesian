@@ -156,5 +156,13 @@ summary(testSamples[[1]])
 testSamples[[2]][, 1] %>% density %>% plot()
 traceplot(testSamples[[1]])
 
+ADData <- df_2024 %>% filter(name == "Anthony Davis")
 
+adSamples <- playerMixture(2000, ADData, meanStarts = c(0, 30),
+                           sdStarts = c(0.001, 10), 
+                           probStarts = c(0.05, rep((1 - 0.05)/1, 1)), 
+                           hyperProbs = c(1, 1), alphas = c(500, 10), 
+                           betas = c(0.0001, 1), burnIn = 3000)
+adSamples[[2]][, 1] %>% density %>% plot
 
+## Too many clusters will inflate estimates of injury. 
