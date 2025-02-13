@@ -89,6 +89,10 @@ playerMixture <- function(n.iter, data, meanStarts, sdStarts,
   probVals <- matrix(probStarts, nrow = n.iter + burnIn + 1, ncol = clusterSize, byrow = T)
   zMat <- matrix(1, nrow = n.iter + burnIn + 1, ncol = gamesPlayed)
   
+  ## Posterior Predictive Samples
+  newZ <- numeric(n.iter + burnIn + 1)
+  newY <- numeric(n.iter + burnIn + 1)
+  
   ## Do an array for the other one, per game. 
   
   for (i in 2:(n.iter + burnIn + 1)) {
@@ -124,23 +128,33 @@ playerMixture <- function(n.iter, data, meanStarts, sdStarts,
     sdVals[i, ] <- 1/map_dbl(1:clusterSize, ~rgamma(1, latentSampleSizes[.x]/2 + alphas[.x], 
                                    latentSS[.x]/2 + betas[.x]))
     
+    ## Posterior Predictive Samples
+    newZ[i] <- sample.int(clusterSize, 1, prob = probVals[i, ])
+    newY[i] <- rnorm(1, mean = muMat[i, newZ[i]], sd = sqrt(sdVals[i, newZ[i]]))
+    
   }
   
-  resMat <- cbind(muMat, sdVals, probVals, zMat)
-  colnames(resMat) <- c(paste0("mu_", 1:clusterSize),
+  paramMat <- cbind(muMat, sdVals, probVals)
+  colnames(paramMat) <- c(paste0("mu_", 1:clusterSize),
                         paste0("sdVal", 1:clusterSize),
-                        paste0("pi_", 1:clusterSize), 
-                        paste0("z_", 1:gamesPlayed))
-  return(mcmc(resMat[-1:(-1 * burnIn - 1), ]))
+                        paste0("pi_", 1:clusterSize))
+  ppMat <- cbind(Y = newY, Z = newZ)
+  return(list(Parameters = mcmc(paramMat[-1:(-1 * burnIn - 1), ]), 
+              `Posterior Predictive Samples` = mcmc(ppMat[-1:(-1 * burnIn - 1), ]), 
+              `Latent Samples` = mcmc(zMat[-1:(-1 * burnIn - 1), ])))
   
   
 }
 
-testSamples <- playerMixture(2000, wembyData, meanStarts = c(0, 18, 30, 50),
-              sdStarts = c(0.001, 5, 5, 5), probStarts = c(0.01, 1/9, 0.5, 1 - (0.01 + 1/9 + 0.5)), 
-              hyperProbs = c(1, 1, 1, 1), alphas = c(500, 10, 15, 15), 
-              betas = c(0.0001, 1, 1, 1), burnIn = 3000)
+testSamples <- playerMixture(2000, wembyData, meanStarts = c(0, 20, 50),
+              sdStarts = c(0.001, 10, 5), 
+              probStarts = c(0.01, rep((1 - 0.01)/2, 2)), 
+              hyperProbs = c(1, 1, 1), alphas = c(500, 10, 10), 
+              betas = c(0.0001, 1, 1), burnIn = 3000)
 
-traceplot(testSamples)
-mean(testSamples)
+summary(testSamples[[1]])
+testSamples[[2]][, 1] %>% density %>% plot()
+traceplot(testSamples[[1]])
+
+
 
