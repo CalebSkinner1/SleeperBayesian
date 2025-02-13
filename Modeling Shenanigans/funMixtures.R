@@ -49,7 +49,7 @@ zCounter <- function(latentVector, clusterNumber) {
 
 zMeans <- function(y, latentVector, clusterNumber) {
   
-  resVector <- map_dbl(1:clusterNumber, ~ifelse(length(y[latentVector == 0])))
+  resVector <- map_dbl(1:clusterNumber, ~mean(y[latentVector == .x]))
   return(resVector)
   
 }
