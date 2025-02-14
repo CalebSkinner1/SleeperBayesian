@@ -1,5 +1,6 @@
 # libraries
 library("tidyverse")
+library("coda")
 
 # read in data
 df_2024 <- read_csv("Data Cleaning/2024_stats.R")
@@ -163,6 +164,10 @@ adSamples <- playerMixture(2000, ADData, meanStarts = c(0, 30),
                            probStarts = c(0.05, rep((1 - 0.05)/1, 1)), 
                            hyperProbs = c(1, 1), alphas = c(500, 10), 
                            betas = c(0.0001, 1), burnIn = 3000)
+# model
 adSamples[[2]][, 1] %>% density %>% plot
+# real AD
+ADData$sleeper_points %>% density %>% plot
+
 
 ## Too many clusters will inflate estimates of injury. 
